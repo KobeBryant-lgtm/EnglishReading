@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { DIFFICULTY_LABELS, SOURCES } from "@/types";
+import { getCoverImageWithFallback } from "@/lib/coverGenerator";
 
 interface ArticleCardProps {
   article: {
@@ -31,15 +32,16 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   const difficultyClass = `difficulty-${article.difficulty}`;
   const difficultyLabel = DIFFICULTY_LABELS[article.difficulty] || article.difficulty;
   const timeAgo = getTimeAgo(article.publishedAt || article.crawledAt);
+  const coverImageUrl = getCoverImageWithFallback(article.title, article.source, article.imageUrl);
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
       <div className="card-modern group cursor-pointer overflow-hidden">
-        <div className={`flex ${article.imageUrl ? "flex-row" : "flex-col"}`}>
-          {article.imageUrl ? (
+        <div className={`flex ${coverImageUrl ? "flex-row" : "flex-col"}`}>
+          {coverImageUrl ? (
             <div className="article-image-wrapper flex-shrink-0 w-32 sm:w-40 md:w-44 lg:w-48 relative overflow-hidden">
               <img
-                src={article.imageUrl}
+                src={coverImageUrl}
                 alt={article.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { DIFFICULTY_LABELS, SOURCES } from "@/types";
+import { getCoverImageWithFallback } from "@/lib/coverGenerator";
 
 interface ArticleData {
   id: string;
@@ -50,20 +51,21 @@ export default function DailyRecommend() {
     color: "#6b7280",
   };
   const difficultyLabel = DIFFICULTY_LABELS[article.difficulty] || article.difficulty;
+  const coverImageUrl = getCoverImageWithFallback(article.title, article.source, article.imageUrl);
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
       <div className="daily-recommend-card group cursor-pointer mb-8 sm:mb-10 overflow-hidden relative">
-        {article.imageUrl && (
+        {coverImageUrl && (
           <div
             className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-            style={{ backgroundImage: `url(${article.imageUrl})` }}
+            style={{ backgroundImage: `url(${coverImageUrl})` }}
           >
             <div className="absolute inset-0 daily-gradient-overlay"></div>
           </div>
         )}
 
-        <div className={`relative z-10 ${article.imageUrl ? "text-white" : ""}`}>
+        <div className={`relative z-10 ${coverImageUrl ? "text-white" : ""}`}>
           <div className="flex items-center gap-3 mb-3 sm:mb-4">
             <span className="daily-badge">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -71,7 +73,7 @@ export default function DailyRecommend() {
               </svg>
               每日推荐
             </span>
-            <span className="source-tag" style={!article.imageUrl ? {} : {
+            <span className="source-tag" style={!coverImageUrl ? {} : {
               background: "rgba(255,255,255,0.2)",
               borderColor: "rgba(255,255,255,0.3)",
               color: "#fff"
@@ -88,7 +90,7 @@ export default function DailyRecommend() {
             style={{
               fontFamily: "var(--serif)",
               letterSpacing: "-0.02em",
-              textShadow: article.imageUrl ? "0 2px 20px rgba(0,0,0,0.3)" : "none"
+              textShadow: coverImageUrl ? "0 2px 20px rgba(0,0,0,0.3)" : "none"
             }}
           >
             {article.title}
@@ -98,8 +100,8 @@ export default function DailyRecommend() {
             <p
               className="text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3 mb-4"
               style={{
-                opacity: article.imageUrl ? 0.95 : undefined,
-                color: article.imageUrl ? "#fff" : "var(--text-secondary)"
+                opacity: coverImageUrl ? 0.95 : undefined,
+                color: coverImageUrl ? "#fff" : "var(--text-secondary)"
               }}
             >
               {article.summary}
@@ -108,7 +110,7 @@ export default function DailyRecommend() {
 
           <div
             className="flex items-center gap-4 text-xs"
-            style={{ color: article.imageUrl ? "rgba(255,255,255,0.85)" : "var(--text-muted)" }}
+            style={{ color: coverImageUrl ? "rgba(255,255,255,0.85)" : "var(--text-muted)" }}
           >
             <span>{article.wordCount} 词</span>
             <span>·</span>

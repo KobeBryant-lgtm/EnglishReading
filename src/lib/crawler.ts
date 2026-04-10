@@ -112,16 +112,29 @@ async function fetchViaAllOrigins(url: string): Promise<string | null> {
   }
 }
 
-async function fetchFullArticle(url: string): Promise<string> {
+interface FullArticleResult {
+  content: string;
+  imageUrl?: string;
+}
+
+async function fetchFullArticle(url: string): Promise<FullArticleResult> {
   try {
     const html = await fetchViaProxy(url);
-    return extractArticleContent(html);
+    return {
+      content: extractArticleContent(html),
+      imageUrl: extractImageUrl(html),
+    };
   } catch {}
 
   const aoHtml = await fetchViaAllOrigins(url);
-  if (aoHtml) return extractArticleContent(aoHtml);
+  if (aoHtml) {
+    return {
+      content: extractArticleContent(aoHtml),
+      imageUrl: extractImageUrl(aoHtml),
+    };
+  }
 
-  return "";
+  return { content: "" };
 }
 
 function extractArticleContent(html: string): string {
@@ -145,6 +158,26 @@ function extractArticleContent(html: string): string {
 
   const bodyText = $("body").text().replace(/\s+/g, " ").trim();
   return bodyText.length > 200 ? bodyText : "";
+}
+
+function extractImageUrl(html: string): string | undefined {
+  const $ = cheerio.load(html);
+
+  const ogImage = $('meta[property="og:image"]').attr("content");
+  if (ogImage) return ogImage;
+
+  const twitterImage = $('meta[name="twitter:image"]').attr("content");
+  if (twitterImage) return twitterImage;
+
+  const articleImage = $('meta[property="article:image"]').attr("content");
+  if (articleImage) return articleImage;
+
+  const firstLargeImg = $("article img, .article-body img, .content-body img").first().attr("src");
+  if (firstLargeImg && !firstLargeImg.includes("icon") && !firstLargeImg.includes("logo")) {
+    return firstLargeImg;
+  }
+
+  return undefined;
 }
 
 async function crawlSource(source: SourceConfig): Promise<CrawledArticle[]> {
@@ -171,6 +204,7 @@ async function crawlSource(source: SourceConfig): Promise<CrawledArticle[]> {
       if (!link) continue;
 
       let content = "";
+      let imageUrl: string | undefined = item.enclosure?.url || undefined;
 
       if (item.content && item.content.length > 200) {
         const $ = cheerio.load(item.content || "");
@@ -182,7 +216,11 @@ async function crawlSource(source: SourceConfig): Promise<CrawledArticle[]> {
       }
 
       if (content.length < 100) {
-        content = await fetchFullArticle(link);
+        const fullArticle = await fetchFullArticle(link);
+        content = fullArticle.content;
+        if (!imageUrl && fullArticle.imageUrl) {
+          imageUrl = fullArticle.imageUrl;
+        }
       }
 
       if (!content || content.length < 100) continue;
@@ -199,7 +237,7 @@ async function crawlSource(source: SourceConfig): Promise<CrawledArticle[]> {
         author: item.creator || undefined,
         content,
         summary: summary.substring(0, 300),
-        imageUrl: item.enclosure?.url || undefined,
+        imageUrl,
         publishedAt: item.pubDate ? new Date(item.pubDate) : undefined,
         wordCount,
       });

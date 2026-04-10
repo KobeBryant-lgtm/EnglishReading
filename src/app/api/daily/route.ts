@@ -15,8 +15,9 @@ export async function GET() {
       where: {
         difficulty: { in: preferredDifficulties },
         summary: { not: null },
+        wordCount: { gte: 400 },
       },
-      orderBy: [{ difficulty: "asc" }, { crawledAt: "desc" }],
+      orderBy: [{ difficulty: "asc" }, { wordCount: "desc" }, { crawledAt: "desc" }],
       select: {
         id: true,
         title: true,
@@ -32,7 +33,10 @@ export async function GET() {
 
     if (articles.length === 0) {
       const fallback = await prisma.article.findFirst({
-        orderBy: { crawledAt: "desc" },
+        where: {
+          wordCount: { gte: 300 },
+        },
+        orderBy: { wordCount: "desc" },
         select: {
           id: true,
           title: true,
