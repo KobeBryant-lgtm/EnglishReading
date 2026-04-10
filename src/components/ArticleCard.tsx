@@ -34,41 +34,77 @@ export default function ArticleCard({ article }: ArticleCardProps) {
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
-      <div className="card p-5 group cursor-pointer">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="source-tag">
-            {sourceInfo.name}
-          </span>
-          <span className={`difficulty-tag ${difficultyClass}`}>
-            {difficultyLabel}
-          </span>
-          <span
-            className="text-xs ml-auto"
-            style={{ color: "var(--text-muted)" }}
-          >
-            {article.wordCount}词 / {timeAgo}
-          </span>
+      <div className="card-modern group cursor-pointer overflow-hidden">
+        <div className={`flex ${article.imageUrl ? "flex-row" : "flex-col"}`}>
+          {article.imageUrl ? (
+            <div className="article-image-wrapper flex-shrink-0 w-32 sm:w-40 md:w-44 lg:w-48 relative overflow-hidden">
+              <img
+                src={article.imageUrl}
+                alt={article.title}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="image-overlay"></div>
+            </div>
+          ) : (
+            <div
+              className="article-image-placeholder flex-shrink-0 w-full h-36 sm:h-40 relative overflow-hidden"
+              style={{ background: `linear-gradient(135deg, ${sourceInfo.color}15, ${sourceInfo.color}08)` }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={sourceInfo.color}
+                  strokeWidth="1"
+                  opacity="0.3"
+                >
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          <div className={`article-content-wrapper ${article.imageUrl ? "p-4 sm:p-5 flex-1" : "p-5"}`}>
+            <div className="flex items-center gap-2 mb-2 sm:mb-3 flex-wrap">
+              <span className="source-tag">{sourceInfo.name}</span>
+              <span className={`difficulty-tag ${difficultyClass}`}>
+                {difficultyLabel}
+              </span>
+            </div>
+
+            <h3
+              className="text-sm sm:text-base font-medium mb-2 leading-relaxed line-clamp-2"
+              style={{
+                color: "var(--text-primary)",
+                fontFamily: "var(--serif)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {article.title}
+            </h3>
+
+            {article.summary && (
+              <p
+                className="text-xs leading-relaxed line-clamp-2 mb-3"
+                style={{ color: "var(--text-muted)" }}
+              >
+                {article.summary}
+              </p>
+            )}
+
+            <div
+              className="flex items-center gap-2 text-xs"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <span>{article.wordCount}词</span>
+              <span>·</span>
+              <span>{timeAgo}</span>
+            </div>
+          </div>
         </div>
-
-        <h3
-          className="text-sm font-medium mb-2 leading-relaxed"
-          style={{
-            color: "var(--text-primary)",
-            fontFamily: "var(--serif)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {article.title}
-        </h3>
-
-        {article.summary && (
-          <p
-            className="text-xs leading-relaxed line-clamp-2"
-            style={{ color: "var(--text-muted)" }}
-          >
-            {article.summary}
-          </p>
-        )}
       </div>
     </Link>
   );

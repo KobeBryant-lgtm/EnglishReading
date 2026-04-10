@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import ArticleCard from "@/components/ArticleCard";
+import DailyRecommend from "@/components/DailyRecommend";
 import { SOURCES, DIFFICULTY_LABELS } from "@/types";
 
 interface ArticleSummary {
@@ -59,7 +60,7 @@ export default function HomeContent() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-5 md:px-8 py-6 sm:py-10">
-      <div className="mb-8 sm:mb-10">
+      <div className="mb-6 sm:mb-8">
         <h1
           className="text-xl sm:text-2xl font-semibold"
           style={{ color: "var(--text-primary)", fontFamily: "var(--serif)", letterSpacing: "-0.02em" }}
@@ -67,6 +68,9 @@ export default function HomeContent() {
           每日外刊精读
         </h1>
       </div>
+
+      {/* Daily Recommendation */}
+      <DailyRecommend />
 
       <div
         className="filter-bar flex flex-wrap items-center gap-2 sm:gap-3 mb-6 sm:mb-8 pb-4 sm:pb-5"

@@ -263,6 +263,112 @@ body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* Modern Card with Image Support */
+.card-modern {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  min-height: 160px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-modern:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+
+.dark .card-modern:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.article-image-wrapper {
+  min-height: 180px;
+  position: relative;
+}
+
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.05) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-modern:hover .image-overlay {
+  opacity: 1;
+}
+
+.article-image-placeholder {
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Daily Recommendation Card */
+.daily-recommend-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 28px;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 640px) {
+  .daily-recommend-card {
+    padding: 36px;
+  }
+}
+
+@media (min-width: 768px) {
+  .daily-recommend-card {
+    padding: 44px;
+  }
+}
+
+.daily-recommend-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 12px 40px rgba(196, 93, 62, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-3px);
+}
+
+.dark .daily-recommend-card:hover {
+  box-shadow: 0 12px 40px rgba(224, 112, 82, 0.15), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.daily-gradient-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+}
+
+.daily-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-radius: 20px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(196, 93, 62, 0.25);
+}
+
+.daily-read-more {
+  color: var(--accent);
+  font-weight: 500;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
 .input-field {
   padding: 8px 12px;
   border-radius: 6px;
