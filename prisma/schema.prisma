@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  source      String
+  sourceUrl   String
+  author      String?
+  content     String
+  summary     String?
+  imageUrl    String?
+  difficulty  String   @default("kaoyan")
+  wordCount   Int      @default(0)
+  publishedAt DateTime?
+  crawledAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  vocabulary  Vocabulary[]
+  translations Translation[]
+}
+
+model Vocabulary {
+  id              String   @id @default(cuid())
+  word            String
+  definition      String?
+  phonetic        String?
+  partOfSpeech    String?
+  exampleSentence String?
+  articleId       String?
+  article         Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  reviewCount     Int      @default(0)
+  mastered        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  lastReviewedAt  DateTime?
+
+  @@unique([word])
+}
+
+model Translation {
+  id             String   @id @default(cuid())
+  articleId      String
+  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  paragraphIndex Int
+  originalText   String
+  translatedText String
+  createdAt      DateTime @default(now())
+
+  @@unique([articleId, paragraphIndex])
+}
+
+model CrawlLog {
+  id        String   @id @default(cuid())
+  source    String
+  status    String
+  count     Int      @default(0)
+  message   String?
+  createdAt DateTime @default(now())
+}
