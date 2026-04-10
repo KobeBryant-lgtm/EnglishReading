@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { DIFFICULTY_LABELS, SOURCES } from "@/types";
-import { getCoverImageWithFallback } from "@/lib/coverGenerator";
+import { getCoverImageWithFallback, getCategoryGradient } from "@/lib/coverGenerator";
 
 interface ArticleCardProps {
   article: {
@@ -33,25 +34,29 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   const difficultyLabel = DIFFICULTY_LABELS[article.difficulty] || article.difficulty;
   const timeAgo = getTimeAgo(article.publishedAt || article.crawledAt);
   const coverImageUrl = getCoverImageWithFallback(article.title, article.source, article.imageUrl);
+  const [imageError, setImageError] = useState(false);
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
       <div className="card-modern group cursor-pointer overflow-hidden">
-        <div className={`flex ${coverImageUrl ? "flex-row" : "flex-col"}`}>
-          {coverImageUrl ? (
+        <div className={`flex ${(coverImageUrl && !imageError) ? "flex-row" : "flex-col"}`}>
+          {(coverImageUrl && !imageError) ? (
             <div className="article-image-wrapper flex-shrink-0 w-32 sm:w-40 md:w-44 lg:w-48 relative overflow-hidden">
               <img
                 src={coverImageUrl}
                 alt={article.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                onError={() => setImageError(true)}
+                loading="lazy"
               />
               <div className="image-overlay"></div>
             </div>
           ) : (
             <div
-              className="article-image-placeholder flex-shrink-0 w-full h-36 sm:h-40 relative overflow-hidden"
-              style={{ background: `linear-gradient(135deg, ${sourceInfo.color}15, ${sourceInfo.color}08)` }}
+              className="article-image-placeholder flex-shrink-0 w-full h-36 sm:h-40 relative overflow-hidden bg-gradient-to-br"
+              style={{}}
             >
+              <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryGradient(article.source)} opacity-20`}></div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <svg
                   width="48"
@@ -60,7 +65,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
                   fill="none"
                   stroke={sourceInfo.color}
                   strokeWidth="1"
-                  opacity="0.3"
+                  opacity="0.4"
                 >
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
