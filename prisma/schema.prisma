@@ -1,21 +1,21 @@
-generator client {
-  provider = "prisma-client-js"
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
 }
 
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+generator client {
+  provider = "prisma-client-js"
 }
 
 model Article {
   id          String   @id @default(cuid())
   title       String
   source      String
-  sourceUrl   String
+  sourceUrl   String @db.VarChar(512)
   author      String?
-  content     String
-  summary     String?
-  imageUrl    String?
+  content     String   @db.Text
+  summary     String?  @db.Text
+  imageUrl    String?  @db.VarChar(512)
   difficulty  String   @default("kaoyan")
   wordCount   Int      @default(0)
   publishedAt DateTime?
@@ -29,10 +29,10 @@ model Article {
 model Vocabulary {
   id              String   @id @default(cuid())
   word            String
-  definition      String?
+  definition      String?  @db.Text
   phonetic        String?
   partOfSpeech    String?
-  exampleSentence String?
+  exampleSentence String?  @db.Text
   articleId       String?
   article         Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
   reviewCount     Int      @default(0)
@@ -46,10 +46,10 @@ model Vocabulary {
 model Translation {
   id             String   @id @default(cuid())
   articleId      String
-  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  article        Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
   paragraphIndex Int
-  originalText   String
-  translatedText String
+  originalText   String   @db.Text
+  translatedText String   @db.Text
   createdAt      DateTime @default(now())
 
   @@unique([articleId, paragraphIndex])
@@ -60,6 +60,6 @@ model CrawlLog {
   source    String
   status    String
   count     Int      @default(0)
-  message   String?
+  message   String?  @db.Text
   createdAt DateTime @default(now())
 }
