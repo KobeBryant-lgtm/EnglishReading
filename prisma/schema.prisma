@@ -41,7 +41,7 @@ model Article {
   publishedAt      DateTime?
   crawledAt        DateTime  @default(now())
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  updatedAt        DateTime  @default(now()) @updatedAt
 
   vocabulary      Vocabulary[]
   translations    Translation[]
