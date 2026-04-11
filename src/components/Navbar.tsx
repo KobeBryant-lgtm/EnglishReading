@@ -125,9 +125,12 @@ export default function Navbar() {
                           <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)" }}>{displayName}</div>
                           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>@{user.username}</div>
                         </div>
-                        <DropdownItem href="/profile" onClick={() => setDropdownOpen(false)}>👤 个人中心</DropdownItem>
-                        <DropdownItem href="/profile?tab=favorites" onClick={() => setDropdownOpen(false)}>⭐ 我的收藏</DropdownItem>
-                        <DropdownItem href="/profile?tab=history" onClick={() => setDropdownOpen(false)}>📖 阅读历史</DropdownItem>
+                        <DropdownItem href="/profile" onClick={() => setDropdownOpen(false)}>个人中心</DropdownItem>
+                        <DropdownItem href="/profile?tab=favorites" onClick={() => setDropdownOpen(false)}>我的收藏</DropdownItem>
+                        <DropdownItem href="/profile?tab=history" onClick={() => setDropdownOpen(false)}>阅读历史</DropdownItem>
+                        {user.role === "admin" && (
+                          <DropdownItem href="/admin" onClick={() => setDropdownOpen(false)}>后台管理</DropdownItem>
+                        )}
                         <button
                           onClick={handleLogout}
                           style={{
@@ -145,7 +148,7 @@ export default function Navbar() {
                             textAlign: "left",
                           }}
                         >
-                          🚪 退出登录
+                          退出登录
                         </button>
                       </div>
                     )}
@@ -200,6 +203,9 @@ export default function Navbar() {
             {user && (
               <>
                 <MobileNavLink href="/profile" onClick={() => setMobileMenuOpen(false)}>个人中心</MobileNavLink>
+                {user.role === "admin" && (
+                  <MobileNavLink href="/admin" onClick={() => setMobileMenuOpen(false)}>后台管理</MobileNavLink>
+                )}
                 <button
                   onClick={handleLogout}
                   style={{

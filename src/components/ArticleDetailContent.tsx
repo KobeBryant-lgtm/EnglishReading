@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import ArticleReader from "@/components/ArticleReader";
 import { SOURCES, DIFFICULTY_LABELS } from "@/types";
+import { useAuth } from "@/components/AuthContext";
 
 interface ArticleData {
   id: string;
@@ -29,6 +30,9 @@ export default function ArticleDetailContent({ articleId }: { articleId: string 
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fontSize, setFontSize] = useState(18);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const { user, getToken } = useAuth();
 
   useEffect(() => {
     async function fetchArticle() {
@@ -44,6 +48,54 @@ export default function ArticleDetailContent({ articleId }: { articleId: string 
     }
     fetchArticle();
   }, [articleId]);
+
+  useEffect(() => {
+    if (!user) return;
+    const token = getToken();
+    if (!token) return;
+    fetch(`/api/favorites/${articleId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setIsFavorited(data.isFavorited))
+      .catch(() => {});
+  }, [articleId, user, getToken]);
+
+  useEffect(() => {
+    if (!user) return;
+    const token = getToken();
+    if (!token) return;
+    fetch("/api/history", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ articleId }),
+    }).catch(() => {});
+  }, [articleId, user, getToken]);
+
+  const toggleFavorite = async () => {
+    if (!user) return;
+    const token = getToken();
+    if (!token) return;
+    setFavoriteLoading(true);
+    try {
+      if (isFavorited) {
+        await fetch(`/api/favorites/${articleId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setIsFavorited(false);
+      } else {
+        await fetch("/api/favorites", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ articleId }),
+        });
+        setIsFavorited(true);
+      }
+    } catch {} finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -76,14 +128,42 @@ export default function ArticleDetailContent({ articleId }: { articleId: string 
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-5 py-6 sm:py-10">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1 text-xs no-underline mb-6 sm:mb-8"
-        style={{ color: "var(--text-muted)" }}
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        返回列表
-      </Link>
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 text-xs no-underline"
+          style={{ color: "var(--text-muted)" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          返回列表
+        </Link>
+
+        {user && (
+          <button
+            onClick={toggleFavorite}
+            disabled={favoriteLoading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "1px solid var(--border-color)",
+              background: isFavorited ? "var(--accent-light)" : "transparent",
+              color: isFavorited ? "var(--accent)" : "var(--text-muted)",
+              fontSize: 13,
+              cursor: "pointer",
+              fontWeight: 500,
+              transition: "all 0.2s",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={isFavorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            {isFavorited ? "已收藏" : "收藏"}
+          </button>
+        )}
+      </div>
 
       <article>
         <header className="mb-6 sm:mb-8" style={{ paddingBottom: "20px", borderBottom: "1px solid var(--border-color)" }}>

@@ -13,11 +13,17 @@ interface SentenceState {
   text: string;
   translation?: string;
   translating: boolean;
+  paragraphIndex: number;
+}
+
+interface ParagraphGroup {
+  index: number;
+  sentences: SentenceState[];
 }
 
 export default function ArticleReader({ content, articleId }: ArticleReaderProps) {
-  const [sentences, setSentences] = useState<SentenceState[]>(() =>
-    splitIntoSentences(content).map((text) => ({ text, translating: false }))
+  const [paragraphs, setParagraphs] = useState<ParagraphGroup[]>(() =>
+    groupByParagraphs(splitIntoSentences(content))
   );
   const [showAllTranslations, setShowAllTranslations] = useState(false);
   const [translatingAll, setTranslatingAll] = useState(false);
@@ -37,8 +43,10 @@ export default function ArticleReader({ content, articleId }: ArticleReaderProps
   });
 
   const [vocabularySet, setVocabularySet] = useState<Set<string>>(new Set());
-  const [translationCache, setTranslationCache] = useState<Record<number, string>>({});
+  const [translationCache, setTranslationCache] = useState<Record<string, string>>({});
   const readerRef = useRef<HTMLDivElement>(null);
+
+  const getSentenceKey = (paraIdx: number, sentIdx: number) => `${paraIdx}-${sentIdx}`;
 
   const handleWordClick = useCallback(
     async (word: string, event: React.MouseEvent) => {
@@ -81,66 +89,116 @@ export default function ArticleReader({ content, articleId }: ArticleReaderProps
   );
 
   const translateSentence = useCallback(
-    async (index: number) => {
-      if (translationCache[index]) {
-        setSentences((prev) =>
-          prev.map((s, i) => i === index ? { ...s, translation: translationCache[index], translating: false } : s)
+    async (paraIdx: number, sentIdx: number) => {
+      const key = getSentenceKey(paraIdx, sentIdx);
+      if (translationCache[key]) {
+        setParagraphs((prev) =>
+          prev.map((p) =>
+            p.index === paraIdx
+              ? {
+                  ...p,
+                  sentences: p.sentences.map((s, i) =>
+                    i === sentIdx ? { ...s, translation: translationCache[key], translating: false } : s
+                  ),
+                }
+              : p
+          )
         );
         return;
       }
 
-      setSentences((prev) => prev.map((s, i) => (i === index ? { ...s, translating: true } : s)));
+      setParagraphs((prev) =>
+        prev.map((p) =>
+          p.index === paraIdx
+            ? {
+                ...p,
+                sentences: p.sentences.map((s, i) => (i === sentIdx ? { ...s, translating: true } : s)),
+              }
+            : p
+        )
+      );
 
       try {
-        const sentence = sentences[index];
+        const para = paragraphs.find((p) => p.index === paraIdx);
+        const sentence = para?.sentences[sentIdx];
+        if (!sentence) return;
+
         const res = await fetch("/api/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: sentence.text }),
         });
         const data = await res.json();
-        setTranslationCache((prev) => ({ ...prev, [index]: data.translatedText }));
-        setSentences((prev) =>
-          prev.map((s, i) => i === index ? { ...s, translation: data.translatedText, translating: false } : s)
+        setTranslationCache((prev) => ({ ...prev, [key]: data.translatedText }));
+        setParagraphs((prev) =>
+          prev.map((p) =>
+            p.index === paraIdx
+              ? {
+                  ...p,
+                  sentences: p.sentences.map((s, i) =>
+                    i === sentIdx ? { ...s, translation: data.translatedText, translating: false } : s
+                  ),
+                }
+              : p
+          )
         );
       } catch {
-        setSentences((prev) => prev.map((s, i) => (i === index ? { ...s, translating: false } : s)));
+        setParagraphs((prev) =>
+          prev.map((p) =>
+            p.index === paraIdx
+              ? {
+                  ...p,
+                  sentences: p.sentences.map((s, i) => (i === sentIdx ? { ...s, translating: false } : s)),
+                }
+              : p
+          )
+        );
       }
     },
-    [sentences, translationCache]
+    [paragraphs, translationCache]
   );
 
   const translateAll = useCallback(async () => {
     setTranslatingAll(true);
-    const untranslated = sentences.map((s, i) => ({ ...s, index: i })).filter((s) => !s.translation && !translationCache[s.index]);
-
-    for (const sentence of untranslated) {
-      try {
-        const res = await fetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: sentence.text }),
-        });
-        const data = await res.json();
-        setTranslationCache((prev) => ({ ...prev, [sentence.index]: data.translatedText }));
-        setSentences((prev) =>
-          prev.map((s, i) => i === sentence.index ? { ...s, translation: data.translatedText, translating: false } : s)
-        );
-      } catch { continue; }
-      await new Promise((r) => setTimeout(r, 300));
+    for (const para of paragraphs) {
+      for (let i = 0; i < para.sentences.length; i++) {
+        const key = getSentenceKey(para.index, i);
+        if (translationCache[key]) continue;
+        try {
+          const res = await fetch("/api/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: para.sentences[i].text }),
+          });
+          const data = await res.json();
+          setTranslationCache((prev) => ({ ...prev, [key]: data.translatedText }));
+          setParagraphs((prev) =>
+            prev.map((p) =>
+              p.index === para.index
+                ? {
+                    ...p,
+                    sentences: p.sentences.map((s, j) =>
+                      j === i ? { ...s, translation: data.translatedText, translating: false } : s
+                    ),
+                  }
+                : p
+            )
+          );
+        } catch { continue; }
+        await new Promise((r) => setTimeout(r, 300));
+      }
     }
-
     setTranslatingAll(false);
     setShowAllTranslations(true);
-  }, [sentences, translationCache]);
+  }, [paragraphs, translationCache]);
 
   const toggleTranslations = useCallback(() => {
-    if (!showAllTranslations && sentences.some((s) => !s.translation)) {
+    if (!showAllTranslations && paragraphs.some((p) => p.sentences.some((s) => !s.translation))) {
       translateAll();
     } else {
       setShowAllTranslations(!showAllTranslations);
     }
-  }, [showAllTranslations, sentences, translateAll]);
+  }, [showAllTranslations, paragraphs, translateAll]);
 
   return (
     <div ref={readerRef} className="relative">
@@ -153,24 +211,28 @@ export default function ArticleReader({ content, articleId }: ArticleReaderProps
         </span>
       </div>
 
-      <div className="article-content space-y-1" style={{ fontFamily: "var(--serif)" }}>
-        {sentences.map((sentence, index) => (
-          <span key={index}>
-            <span
-              className={`sentence ${sentence.translation && showAllTranslations ? "translated" : ""}`}
-              onClick={() => translateSentence(index)}
-            >
-              {renderSentenceWithClickableWords(sentence.text, handleWordClick)}
-            </span>
-            {sentence.translation && (showAllTranslations || sentence.translation) && (
-              <span
-                className="translation-bubble"
-                style={{ display: showAllTranslations || sentence.translation ? "block" : "none" }}
-              >
-                {sentence.translating ? "翻译中..." : sentence.translation}
+      <div className="article-content" style={{ fontFamily: "var(--serif)" }}>
+        {paragraphs.map((para, paraIdx) => (
+          <div key={para.index} style={{ marginBottom: paraIdx < paragraphs.length - 1 ? "1.8em" : 0 }}>
+            {para.sentences.map((sentence, sentIdx) => (
+              <span key={sentIdx}>
+                <span
+                  className={`sentence ${sentence.translation && showAllTranslations ? "translated" : ""}`}
+                  onClick={() => translateSentence(para.index, sentIdx)}
+                >
+                  {renderSentenceWithClickableWords(sentence.text, handleWordClick)}
+                </span>
+                {sentence.translation && (showAllTranslations || sentence.translation) && (
+                  <span
+                    className="translation-bubble"
+                    style={{ display: showAllTranslations || sentence.translation ? "block" : "none" }}
+                  >
+                    {sentence.translating ? "翻译中..." : sentence.translation}
+                  </span>
+                )}
               </span>
-            )}
-          </span>
+            ))}
+          </div>
         ))}
       </div>
 
@@ -189,7 +251,32 @@ export default function ArticleReader({ content, articleId }: ArticleReaderProps
   );
 }
 
-function splitIntoSentences(text: string): string[] {
+function splitIntoSentences(text: string): SentenceState[] {
+  const result: SentenceState[] = [];
+
+  if (text.includes("\n\n") || text.includes("\r\n\r\n")) {
+    const paragraphs = text.split(/\n\s*\n|\r\n\s*\r\n/);
+    for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+      const para = paragraphs[pIdx].trim();
+      if (!para) continue;
+      const sentences = extractSentences(para);
+      sentences.forEach((s) => result.push({ text: s, translating: false, paragraphIndex: pIdx }));
+    }
+  } else {
+    const allSentences = extractSentences(text);
+    const SENTENCES_PER_PARA = 4;
+    let pIdx = 0;
+    for (let i = 0; i < allSentences.length; i += SENTENCES_PER_PARA) {
+      const chunk = allSentences.slice(i, i + SENTENCES_PER_PARA);
+      chunk.forEach((s) => result.push({ text: s, translating: false, paragraphIndex: pIdx }));
+      pIdx++;
+    }
+  }
+
+  return result.filter((s) => s.text.length > 0);
+}
+
+function extractSentences(text: string): string[] {
   const result: string[] = [];
   const regex = /[^.!?]+[.!?]+\s*/g;
   let match;
@@ -205,7 +292,16 @@ function splitIntoSentences(text: string): string[] {
     if (remaining) result.push(remaining);
   }
 
-  return result.filter((s) => s.length > 0);
+  return result;
+}
+
+function groupByParagraphs(sentences: SentenceState[]): ParagraphGroup[] {
+  const groups: Map<number, SentenceState[]> = new Map();
+  for (const s of sentences) {
+    if (!groups.has(s.paragraphIndex)) groups.set(s.paragraphIndex, []);
+    groups.get(s.paragraphIndex)!.push(s);
+  }
+  return Array.from(groups.entries()).map(([index, sentences]) => ({ index, sentences }));
 }
 
 function renderSentenceWithClickableWords(

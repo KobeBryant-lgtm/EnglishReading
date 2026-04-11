@@ -23,7 +23,6 @@ export default function HomeContent() {
   const [filter, setFilter] = useState({ source: "", difficulty: "" });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [todayCount, setTodayCount] = useState(0);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -41,16 +40,7 @@ export default function HomeContent() {
     }
   }, [page, filter]);
 
-  const fetchTodayCount = useCallback(async () => {
-    try {
-      const res = await fetch("/api/articles?limit=1&today=true");
-      const data = await res.json();
-      setTodayCount(data.todayCount || 0);
-    } catch {}
-  }, []);
-
   useEffect(() => { fetchArticles(); }, [fetchArticles]);
-  useEffect(() => { fetchTodayCount(); }, [fetchTodayCount]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-5 md:px-8 py-6 sm:py-10">
@@ -61,21 +51,6 @@ export default function HomeContent() {
         >
           每日外刊精读
         </h1>
-        {todayCount > 0 && (
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "var(--accent-light)",
-            color: "var(--success)",
-            fontSize: 13,
-            padding: "6px 14px",
-            borderRadius: 20,
-            marginTop: 12,
-          }}>
-            ✅ 今日已自动更新 {todayCount} 篇文章
-          </div>
-        )}
       </div>
 
       <DailyRecommend />

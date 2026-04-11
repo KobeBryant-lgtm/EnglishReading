@@ -1,18 +1,1 @@
-{
-  "buildCommand": "npx prisma db push --accept-data-loss && npx prisma generate && next build",
-  "installCommand": "npm install",
-  "framework": "nextjs",
-  "regions": ["hkg1"],
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/crawl",
-      "schedule": "0 16 * * *"
-    }
-  ]
-}
+{"buildCommand": "npx prisma generate && next build", "installCommand": "npm install", "framework": "nextjs", "regions": ["hkg1"], "functions": {"src/app/api/**/*.ts": {"memory": 1024, "maxDuration": 60}}, "crons": [{"path": "/api/cron/crawl", "schedule": "0 16 * * *"}]}
