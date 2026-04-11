@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/components/AuthContext";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -64,7 +65,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

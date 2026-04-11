@@ -52,12 +52,15 @@ async function main() {
     saved++;
   }
 
-  await prisma.crawlLog.create({
+  await prisma.crawlTask.create({
     data: {
-      source: "all",
+      sourceName: "全部来源",
+      triggerType: "manual",
       status: "success",
-      count: saved,
-      message: `抓取 ${articles.length} 篇，保存 ${saved} 篇，跳过 ${skipped} 篇重复`,
+      articlesFetched: saved,
+      errorLog: `抓取 ${articles.length} 篇，保存 ${saved} 篇，跳过 ${skipped} 篇重复`,
+      startedAt: new Date(),
+      finishedAt: new Date(),
     },
   });
 

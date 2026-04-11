@@ -8,8 +8,9 @@ export async function GET(request: Request) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "12");
   const search = searchParams.get("search");
+  const today = searchParams.get("today");
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { isDeleted: false };
 
   if (source) where.source = source;
   if (difficulty) where.difficulty = difficulty;
@@ -20,7 +21,10 @@ export async function GET(request: Request) {
     ];
   }
 
-  const [articles, total] = await Promise.all([
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [articles, total, todayCount] = await Promise.all([
     prisma.article.findMany({
       where,
       orderBy: { crawledAt: "desc" },
@@ -39,10 +43,17 @@ export async function GET(request: Request) {
       },
     }),
     prisma.article.count({ where }),
+    prisma.article.count({
+      where: {
+        isDeleted: false,
+        crawledAt: { gte: todayStart },
+      },
+    }),
   ]);
 
   return NextResponse.json({
     articles,
+    todayCount,
     pagination: {
       page,
       limit,

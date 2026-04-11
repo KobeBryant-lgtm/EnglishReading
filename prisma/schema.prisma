@@ -7,46 +7,101 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Article {
-  id          String   @id @default(cuid())
-  title       String
-  source      String
-  sourceUrl   String @db.VarChar(512)
-  author      String?
-  content     String   @db.Text
-  summary     String?  @db.Text
-  imageUrl    String?  @db.VarChar(512)
-  difficulty  String   @default("kaoyan")
-  wordCount   Int      @default(0)
-  publishedAt DateTime?
-  crawledAt   DateTime @default(now())
-  createdAt   DateTime @default(now())
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique @db.VarChar(20)
+  passwordHash String    @db.VarChar(255)
+  nickname     String?   @db.VarChar(50)
+  avatarUrl    String?   @db.VarChar(500)
+  role         String    @default("user") @db.VarChar(10)
+  status       String    @default("active") @db.VarChar(10)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
 
-  vocabulary  Vocabulary[]
-  translations Translation[]
+  favorites      UserFavorite[]
+  readingHistory ReadingHistory[]
+  vocabulary     Vocabulary[]
+}
+
+model Article {
+  id               String    @id @default(cuid())
+  title            String
+  source           String
+  sourceUrl        String    @db.VarChar(512)
+  author           String?
+  content          String    @db.Text
+  summary          String?   @db.Text
+  imageUrl         String?   @db.VarChar(512)
+  difficulty       String    @default("kaoyan")
+  wordCount        Int       @default(0)
+  viewCount        Int       @default(0)
+  isDailyRecommend Boolean   @default(false)
+  isDeleted        Boolean   @default(false)
+  publishedAt      DateTime?
+  crawledAt        DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  vocabulary      Vocabulary[]
+  translations    Translation[]
+  favorites       UserFavorite[]
+  readingHistory  ReadingHistory[]
+}
+
+model UserFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
+}
+
+model ReadingHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  articleId  String
+  lastReadAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
 }
 
 model Vocabulary {
   id              String   @id @default(cuid())
+  userId          String?
   word            String
   definition      String?  @db.Text
   phonetic        String?
   partOfSpeech    String?
   exampleSentence String?  @db.Text
   articleId       String?
-  article         Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  status          String   @default("learning") @db.VarChar(10)
   reviewCount     Int      @default(0)
   mastered        Boolean  @default(false)
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   lastReviewedAt  DateTime?
 
-  @@unique([word])
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, word])
+  @@index([userId])
 }
 
 model Translation {
   id             String   @id @default(cuid())
   articleId      String
-  article        Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  article        Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   paragraphIndex Int
   originalText   String   @db.Text
   translatedText String   @db.Text
@@ -55,11 +110,27 @@ model Translation {
   @@unique([articleId, paragraphIndex])
 }
 
-model CrawlLog {
-  id        String   @id @default(cuid())
-  source    String
-  status    String
-  count     Int      @default(0)
-  message   String?  @db.Text
-  createdAt DateTime @default(now())
+model CrawlTask {
+  id             String    @id @default(cuid())
+  sourceName     String    @db.VarChar(100)
+  triggerType    String    @db.VarChar(10)
+  status         String    @db.VarChar(10)
+  articlesFetched Int      @default(0)
+  errorLog       String?   @db.Text
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model Source {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(100)
+  nameCn      String   @db.VarChar(100)
+  category    String?  @db.VarChar(50)
+  feedUrl     String?  @db.VarChar(1000)
+  color       String   @default("#C0592B") @db.VarChar(20)
+  isActive    Boolean  @default(true)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

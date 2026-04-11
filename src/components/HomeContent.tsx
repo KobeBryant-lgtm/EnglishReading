@@ -20,10 +20,10 @@ interface ArticleSummary {
 export default function HomeContent() {
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [crawling, setCrawling] = useState(false);
   const [filter, setFilter] = useState({ source: "", difficulty: "" });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [todayCount, setTodayCount] = useState(0);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -41,22 +41,16 @@ export default function HomeContent() {
     }
   }, [page, filter]);
 
-  useEffect(() => { fetchArticles(); }, [fetchArticles]);
-
-  const handleCrawl = async () => {
-    setCrawling(true);
+  const fetchTodayCount = useCallback(async () => {
     try {
-      const res = await fetch("/api/crawl", { method: "POST" });
+      const res = await fetch("/api/articles?limit=1&today=true");
       const data = await res.json();
-      if (data.success) {
-        setPage(1);
-        fetchArticles();
-      }
-    } catch {
-    } finally {
-      setCrawling(false);
-    }
-  };
+      setTodayCount(data.todayCount || 0);
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchArticles(); }, [fetchArticles]);
+  useEffect(() => { fetchTodayCount(); }, [fetchTodayCount]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-5 md:px-8 py-6 sm:py-10">
@@ -67,9 +61,23 @@ export default function HomeContent() {
         >
           每日外刊精读
         </h1>
+        {todayCount > 0 && (
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "var(--accent-light)",
+            color: "var(--success)",
+            fontSize: 13,
+            padding: "6px 14px",
+            borderRadius: 20,
+            marginTop: 12,
+          }}>
+            ✅ 今日已自动更新 {todayCount} 篇文章
+          </div>
+        )}
       </div>
 
-      {/* Daily Recommendation */}
       <DailyRecommend />
 
       <div
@@ -97,15 +105,6 @@ export default function HomeContent() {
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
-
-        <button
-          onClick={handleCrawl}
-          disabled={crawling}
-          className="btn-ghost w-full sm:w-auto sm:ml-auto"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-          {crawling ? "抓取中..." : "更新文章"}
-        </button>
       </div>
 
       {loading ? (
@@ -117,12 +116,9 @@ export default function HomeContent() {
       ) : articles.length === 0 ? (
         <div className="text-center py-16 sm:py-24">
           <p className="text-sm mb-1" style={{ color: "var(--text-muted)" }}>暂无文章</p>
-          <p className="text-xs mb-6" style={{ color: "var(--text-muted)" }}>
-            点击「更新文章」从外刊获取最新内容
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            系统将每日自动抓取最新外刊文章
           </p>
-          <button onClick={handleCrawl} disabled={crawling} className="btn-primary">
-            {crawling ? "抓取中..." : "获取文章"}
-          </button>
         </div>
       ) : (
         <>

@@ -1,0 +1,918 @@
+
+下面是整合后的单个 HTML 页面 Demo 文件：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadEng V2.0 - 页面 Demo</title>
+<style>
+/* ====== RESET ====== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;background:#fafafa;color:#333;line-height:1.6}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit}
+
+/* ====== ROUTER ====== */
+.page{display:none;min-height:100vh}
+.page.active{display:block}
+
+/* ====== NAVBAR ====== */
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:16px 60px;background:#fff;border-bottom:1px solid #eee;position:sticky;top:0;z-index:100}
+.nav-logo{font-size:20px;font-weight:700;color:#222;cursor:pointer}
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links a{color:#555;font-size:15px;transition:color .2s;cursor:pointer}
+.nav-links a:hover{color:#C0592B}
+.nav-right{display:flex;align-items:center;gap:16px}
+.btn-login{padding:6px 20px;border:1px solid #C0592B;color:#C0592B;border-radius:6px;font-size:14px;cursor:pointer;background:#fff;transition:all .2s}
+.btn-login:hover{background:#C0592B;color:#fff}
+.btn-register{padding:6px 20px;background:#C0592B;color:#fff;border-radius:6px;font-size:14px;border:1px solid #C0592B;cursor:pointer;transition:all .2s}
+.btn-register:hover{background:#a84a24}
+.dark-toggle{cursor:pointer;font-size:18px;color:#888;user-select:none}
+
+/* User dropdown */
+.user-menu{position:relative;cursor:pointer}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:#C0592B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+.user-dropdown{display:none;position:absolute;right:0;top:48px;background:#fff;border:1px solid #e8e8e8;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.1);min-width:200px;overflow:hidden;z-index:200}
+.user-menu:hover .user-dropdown{display:block}
+.ud-header{padding:16px;border-bottom:1px solid #f0f0f0}
+.ud-header .name{font-weight:600;font-size:15px}
+.ud-header .uname{font-size:12px;color:#999}
+.user-dropdown a{display:flex;align-items:center;gap:10px;padding:12px 16px;color:#555;font-size:14px;transition:background .2s;cursor:pointer}
+.user-dropdown a:hover{background:#f7f7f7}
+.user-dropdown a.logout{color:#C0592B;border-top:1px solid #f0f0f0}
+
+/* ====== CONTAINERS ====== */
+.container{max-width:1200px;margin:0 auto;padding:32px 20px}
+.page-title{font-size:28px;font-weight:700;margin-bottom:24px}
+
+/* ====== HOME ====== */
+.update-notice{display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;color:#16a34a;font-size:13px;padding:6px 14px;border-radius:20px;margin-bottom:24px}
+.hero-card{position:relative;border-radius:16px;overflow:hidden;margin-bottom:32px;height:320px;background:linear-gradient(135deg,#1a1a2e,#16213e);cursor:pointer}
+.hero-card img{width:100%;height:100%;object-fit:cover;opacity:.55}
+.hero-overlay{position:absolute;inset:0;padding:32px;display:flex;flex-direction:column;justify-content:flex-end}
+.hero-tags{display:flex;gap:8px;margin-bottom:12px}
+.tag{padding:4px 12px;border-radius:4px;font-size:12px;font-weight:500;display:inline-block}
+.tag-recommend{background:#C0592B;color:#fff}
+.tag-source{background:rgba(255,255,255,.2);color:#fff}
+.tag-diff-dark{background:transparent;border:1px solid #ffb088;color:#ffb088}
+.hero-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:8px}
+.hero-desc{font-size:14px;color:rgba(255,255,255,.8);margin-bottom:12px}
+.hero-meta{font-size:13px;color:rgba(255,255,255,.6)}
+.hero-read{position:absolute;bottom:32px;right:32px;color:#C0592B;font-size:14px;font-weight:500}
+.filter-bar{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.filter-select{padding:8px 36px 8px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;color:#555;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;appearance:none;cursor:pointer;outline:none}
+.article-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.article-card{display:flex;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #f0f0f0;transition:box-shadow .2s,transform .15s;cursor:pointer}
+.article-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06);transform:translateY(-2px)}
+.article-img{width:200px;min-height:160px;object-fit:cover;flex-shrink:0;background:#e0e0e0}
+.article-body{padding:20px;flex:1;display:flex;flex-direction:column}
+.article-tags{display:flex;gap:6px;margin-bottom:10px}
+.tag-src{background:#f3f4f6;color:#555}
+.tag-diff{border:1px solid #C0592B;color:#C0592B;background:transparent}
+.article-atitle{font-size:17px;font-weight:600;color:#222;margin-bottom:8px;line-height:1.4}
+.article-desc{font-size:13px;color:#888;margin-bottom:12px;flex:1}
+.article-footer{display:flex;align-items:center;justify-content:space-between}
+.article-meta{font-size:12px;color:#aaa}
+.btn-fav{background:none;border:none;cursor:pointer;font-size:20px;color:#ccc;transition:color .2s;padding:4px}
+.btn-fav:hover,.btn-fav.active{color:#C0592B}
+
+/* ====== AUTH ====== */
+.auth-container{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 70px);padding:40px 20px}
+.auth-card{background:#fff;border-radius:16px;padding:48px 40px;width:100%;max-width:440px;box-shadow:0 2px 20px rgba(0,0,0,.06)}
+.auth-card h1{font-size:26px;font-weight:700;margin-bottom:8px;text-align:center}
+.auth-card .subtitle{text-align:center;color:#999;font-size:14px;margin-bottom:32px}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:14px;font-weight:500;color:#444;margin-bottom:6px}
+.form-group input{width:100%;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:15px;outline:none;transition:border-color .2s}
+.form-group input:focus{border-color:#C0592B}
+.form-group input::placeholder{color:#bbb}
+.form-hint{font-size:12px;color:#aaa;margin-top:4px}
+.form-options{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;font-size:13px}
+.form-options label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#666}
+.form-options label input[type="checkbox"]{accent-color:#C0592B}
+.form-options a{color:#C0592B;cursor:pointer}
+.btn-submit{width:100%;padding:14px;background:#C0592B;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-submit:hover{background:#a84a24}
+.auth-footer{text-align:center;font-size:14px;color:#888;margin-top:24px}
+.auth-footer a{color:#C0592B;font-weight:500;cursor:pointer}
+.captcha-row{display:flex;gap:12px;align-items:center}
+.captcha-row input{flex:1}
+.captcha-box{padding:10px 20px;background:#f3f4f6;border-radius:8px;font-size:18px;font-weight:700;color:#C0592B;letter-spacing:2px;cursor:pointer;user-select:none;white-space:nowrap;border:1px solid #e0e0e0}
+.captcha-box:hover{background:#eee}
+
+/* ====== PROFILE ====== */
+.profile-layout{display:flex;max-width:1100px;margin:32px auto;padding:0 20px;gap:32px}
+.profile-sidebar{width:260px;flex-shrink:0}
+.profile-info{background:#fff;border-radius:16px;padding:32px 24px;text-align:center;border:1px solid #f0f0f0;margin-bottom:16px}
+.avatar-large{width:80px;height:80px;border-radius:50%;background:#C0592B;color:#fff;font-size:32px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.profile-name{font-size:18px;font-weight:600;margin-bottom:4px}
+.profile-uname{font-size:13px;color:#999;margin-bottom:16px}
+.profile-stats{display:flex;justify-content:center;gap:24px}
+.stat-item{text-align:center}
+.stat-num{font-size:20px;font-weight:700;color:#C0592B}
+.stat-label{font-size:12px;color:#999}
+.profile-nav{background:#fff;border-radius:16px;border:1px solid #f0f0f0;overflow:hidden}
+.profile-nav a{display:flex;align-items:center;gap:10px;padding:14px 24px;color:#555;font-size:14px;border-bottom:1px solid #f5f5f5;transition:all .2s;cursor:pointer}
+.profile-nav a:last-child{border-bottom:none}
+.profile-nav a:hover{background:#fafafa;color:#C0592B}
+.profile-nav a.active{background:#fef7f4;color:#C0592B;font-weight:600;border-left:3px solid #C0592B}
+.profile-main{flex:1;min-width:0}
+.section-title{font-size:22px;font-weight:700;margin-bottom:6px}
+.section-desc{color:#999;font-size:14px;margin-bottom:24px}
+.tabs{display:flex;gap:8px;margin-bottom:24px}
+.tab{padding:8px 20px;border-radius:8px;border:1px solid #e0e0e0;background:#fff;color:#666;font-size:14px;cursor:pointer;transition:all .2s}
+.tab:hover{border-color:#C0592B;color:#C0592B}
+.tab.active{background:#C0592B;color:#fff;border-color:#C0592B}
+.article-list{display:flex;flex-direction:column;gap:16px}
+.ali{display:flex;background:#fff;border-radius:12px;border:1px solid #f0f0f0;overflow:hidden;transition:box-shadow .2s}
+.ali:hover{box-shadow:0 4px 16px rgba(0,0,0,.05)}
+.ali-img{width:160px;height:110px;object-fit:cover;flex-shrink:0;background:#e0e0e0}
+.ali-body{padding:16px 20px;flex:1;display:flex;flex-direction:column;justify-content:center}
+.ali-tags{display:flex;gap:6px;margin-bottom:6px}
+.ali-title{font-size:16px;font-weight:600;color:#222;margin-bottom:6px}
+.ali-meta{font-size:12px;color:#aaa}
+.ali-actions{display:flex;align-items:center;padding:16px;gap:12px}
+.ali-actions button{background:none;border:none;cursor:pointer;font-size:18px;color:#ccc;transition:color .2s}
+.ali-actions button:hover{color:#C0592B}
+
+/* ====== READER ====== */
+.reader-container{max-width:720px;margin:0 auto;padding:32px 20px}
+.back-link{color:#888;font-size:14px;display:inline-flex;align-items:center;gap:4px;margin-bottom:24px;cursor:pointer}
+.back-link:hover{color:#C0592B}
+.article-header{margin-bottom:32px}
+.article-title-main{font-size:28px;font-weight:700;line-height:1.4;margin-bottom:16px;color:#111}
+.article-meta-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.meta-left{display:flex;align-items:center;gap:16px;font-size:14px;color:#999}
+.meta-left a{color:#C0592B;font-size:13px;cursor:pointer}
+.btn-fav-lg{display:flex;align-items:center;gap:6px;padding:8px 18px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;font-size:14px;cursor:pointer;transition:all .2s}
+.btn-fav-lg:hover{border-color:#C0592B;color:#C0592B}
+.btn-fav-lg.active{background:#fef7f4;border-color:#C0592B;color:#C0592B}
+.controls{display:flex;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.font-sizes{display:flex;gap:4px}
+.font-sizes button{width:40px;height:40px;border-radius:50%;border:1px solid #ddd;background:#fff;font-size:14px;cursor:pointer;transition:all .2s}
+.font-sizes button.active{background:#C0592B;color:#fff;border-color:#C0592B}
+.btn-translate{padding:10px 24px;background:#C0592B;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer}
+.hint-text{color:#bbb;font-size:13px}
+.article-content{font-size:18px;line-height:2;color:#333}
+.article-content .word{cursor:pointer;border-radius:2px;transition:background .15s}
+.article-content .word:hover{background:#fff3cd}
+.float-actions{position:fixed;right:40px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:50}
+.float-btn{width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid #e8e8e8;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.float-btn:hover{border-color:#C0592B;color:#C0592B}
+.float-btn.active{color:#C0592B;background:#fef7f4;border-color:#C0592B}
+
+/* ====== ADMIN ====== */
+.admin-layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:#1a1a2e;color:#fff;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar-logo{padding:24px 24px 20px;font-size:20px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo em{font-style:normal;color:#C0592B}
+.sidebar-nav{flex:1;padding:16px 0}
+.sidebar-nav .ns{padding:20px 24px 8px;font-size:11px;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:1px}
+.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:12px 24px;color:rgba(255,255,255,.6);font-size:14px;transition:all .2s;border-left:3px solid transparent;cursor:pointer}
+.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.05)}
+.sidebar-nav a.active{color:#fff;background:rgba(192,89,43,.15);border-left-color:#C0592B}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.3)}
+.admin-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.admin-header{background:#fff;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e8e8e8}
+.admin-header h2{font-size:18px;font-weight:600}
+.admin-header-right{display:flex;align-items:center;gap:16px;font-size:14px;color:#666}
+.admin-avatar-sm{width:32px;height:32px;border-radius:50%;background:#C0592B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.admin-content{flex:1;padding:24px 32px;overflow-y:auto;background:#f0f2f5}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:32px}
+.stat-card{background:#fff;border-radius:12px;padding:24px;border:1px solid #f0f0f0}
+.stat-card .label{font-size:13px;color:#999;margin-bottom:8px}
+.stat-card .value{font-size:32px;font-weight:700;color:#222}
+.stat-card .change{font-size:12px;margin-top:6px}
+.stat-card .change.up{color:#22c55e}
+.stat-card .change.down{color:#ef4444}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:32px}
+.chart-card{background:#fff;border-radius:12px;padding:24px;border:1px solid #f0f0f0}
+.chart-card h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.chart-placeholder{background:#f9fafb;border-radius:8px;height:220px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:14px;border:1px dashed #e0e0e0;text-align:center;line-height:1.8}
+.top-articles{background:#fff;border-radius:12px;padding:24px;border:1px solid #f0f0f0}
+.top-articles h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.top-list{list-style:none}
+.top-list li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;font-size:14px}
+.top-list li:last-child{border-bottom:none}
+.top-rank{width:24px;height:24px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#888;flex-shrink:0}
+.top-rank.r1{background:#C0592B;color:#fff}
+.top-rank.r2{background:#e8915c;color:#fff}
+.top-rank.r3{background:#f0b88e;color:#fff}
+.top-title-text{flex:1}
+.top-views{color:#999;font-size:13px;white-space:nowrap}
+
+.table-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.search-input{padding:10px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;width:280px;outline:none}
+.search-input:focus{border-color:#C0592B}
+.filter-sel{padding:10px 16px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff}
+.btn-admin{padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;border:none;transition:all .2s}
+.btn-admin-primary{background:#C0592B;color:#fff}
+.btn-admin-primary:hover{background:#a84a24}
+.btn-admin-outline{background:#fff;color:#555;border:1px solid #ddd}
+.btn-admin-outline:hover{border-color:#C0592B;color:#C0592B}
+.data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #f0f0f0}
+.data-table th{background:#f9fafb;padding:14px 16px;text-align:left;font-size:13px;font-weight:600;color:#666;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+.data-table td{padding:14px 16px;font-size:14px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+.data-table tr:hover td{background:#fafafa}
+.data-table .actions{display:flex;gap:8px}
+.data-table .actions button{background:none;border:none;cursor:pointer;font-size:13px;padding:4px 10px;border-radius:6px;transition:all .2s}
+.data-table .actions .btn-edit{color:#3b82f6}
+.data-table .actions .btn-edit:hover{background:#eff6ff}
+.data-table .actions .btn-del{color:#ef4444}
+.data-table .actions .btn-del:hover{background:#fef2f2}
+.data-table .actions .btn-view{color:#888}
+.data-table .actions .btn-view:hover{background:#f5f5f5}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+.badge-active{background:#f0fdf4;color:#16a34a}
+.badge-disabled{background:#fef2f2;color:#dc2626}
+.badge-admin{background:#fef7f4;color:#C0592B}
+.badge-user{background:#f3f4f6;color:#666}
+.badge-success{background:#f0fdf4;color:#16a34a}
+.badge-failed{background:#fef2f2;color:#dc2626}
+.recommend-star{color:#f59e0b;font-size:16px}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:20px}
+.pagination button{width:36px;height:36px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;transition:all .2s}
+.pagination button:hover{border-color:#C0592B;color:#C0592B}
+.pagination button.pg-active{background:#C0592B;color:#fff;border-color:#C0592B}
+.mini-avatar{width:32px;height:32px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.admin-panel{display:none}
+.admin-panel.active{display:block}
+
+/* Toast */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 28px;border-radius:8px;font-size:14px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{display:block;animation:fadeInOut 2.5s ease}
+@keyframes fadeInOut{0%{opacity:0;transform:translateX(-50%) translateY(-10px)}10%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
+
+/* Login prompt modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:40px;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.modal-box h3{font-size:18px;margin-bottom:8px}
+.modal-box p{color:#888;font-size:14px;margin-bottom:24px}
+.modal-box .btn-row{display:flex;gap:12px;justify-content:center}
+.modal-box button{padding:10px 28px;border-radius:8px;font-size:14px;cursor:pointer;border:none;transition:all .2s}
+.modal-box .btn-go{background:#C0592B;color:#fff}
+.modal-box .btn-go:hover{background:#a84a24}
+.modal-box .btn-cancel{background:#f3f4f6;color:#666}
+.modal-box .btn-cancel:hover{background:#e8e8e8}
+
+/* Responsive */
+@media(max-width:768px){
+  .navbar{padding:12px 20px}
+  .nav-links{gap:20px}
+  .article-grid{grid-template-columns:1fr}
+  .article-img{width:140px}
+  .hero-card{height:240px}
+  .hero-title{font-size:20px}
+  .profile-layout{flex-direction:column}
+  .profile-sidebar{width:100%}
+  .ali-img{width:120px;height:90px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .charts-row{grid-template-columns:1fr}
+  .sidebar{width:180px}
+  .float-actions{right:16px}
+  .auth-card{padding:32px 24px}
+}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Login prompt modal -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <h3>请先登录</h3>
+    <p>登录后即可使用收藏、生词本等个性化功能</p>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-go" onclick="closeModal();navigate('login')">去登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: HOME
+     ================================================================ -->
+<div class="page active" id="page-home">
+  <nav class="navbar">
+    <span class="nav-logo" onclick="navigate('home')">ReadEng</span>
+    <div class="nav-links">
+      <a onclick="navigate('home')">文章</a>
+      <a onclick="navigate('home')">生词本</a>
+      <a onclick="navigate('home')">来源</a>
+    </div>
+    <div class="nav-right" id="home-nav-right">
+      <!-- JS will fill based on login state -->
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="page-title">每日外刊精读</h1>
+    <div class="update-notice">✅ 今日已自动更新 12 篇文章</div>
+
+    <div class="hero-card" onclick="navigate('reader')">
+      <img src="https://picsum.photos/1200/400?random=1" alt="">
+      <div class="hero-overlay">
+        <div class="hero-tags">
+          <span class="tag tag-recommend">★ 每日推荐</span>
+          <span class="tag tag-source">BBC·科技</span>
+          <span class="tag tag-diff-dark">考研</span>
+        </div>
+        <div class="hero-title">Meta pulls Facebook ads recruiting for social media addiction lawsuits</div>
+        <div class="hero-desc">The Facebook owner recently lost a landmark social media addiction trial in California</div>
+        <div class="hero-meta">532 词 · 10小时前</div>
+      </div>
+      <span class="hero-read">开始阅读 →</span>
+    </div>
+
+    <div class="filter-bar">
+      <select class="filter-select"><option>全部来源</option><option>BBC</option><option>卫报</option><option>大西洋月刊</option><option>经济学人</option></select>
+      <select class="filter-select"><option>全部难度</option><option>四级</option><option>六级</option><option>考研</option><option>专八</option></select>
+    </div>
+
+    <div class="article-grid">
+      <div class="article-card" onclick="navigate('reader')">
+        <img src="https://picsum.photos/400/300?random=2" class="article-img" alt="">
+        <div class="article-body">
+          <div class="article-tags"><span class="tag tag-src">大西洋月刊</span><span class="tag tag-diff">六级</span></div>
+          <div class="article-atitle">How Fake People Became Real Influencers</div>
+          <div class="article-desc">AI avatars are redefining influence and trust online.</div>
+          <div class="article-footer">
+            <span class="article-meta">7102词 · 9小时前</span>
+            <button class="btn-fav" onclick="event.stopPropagation();handleFav(this)">♡</button>
+          </div>
+        </div>
+      </div>
+      <div class="article-card" onclick="navigate('reader')">
+        <img src="https://picsum.photos/400/300?random=3" class="article-img" alt="">
+        <div class="article-body">
+          <div class="article-tags"><span class="tag tag-src">大西洋月刊</span><span class="tag tag-diff">考研</span></div>
+          <div class="article-atitle">Iran Out-Trolled the Troller in Chief</div>
+          <div class="article-desc">The Iran war sparked an epic social-media trolling contest.</div>
+          <div class="article-footer">
+            <span class="article-meta">1299词 · 6小时前</span>
+            <button class="btn-fav active" onclick="event.stopPropagation();handleFav(this)">♥</button>
+          </div>
+        </div>
+      </div>
+      <div class="article-card" onclick="navigate('reader')">
+        <img src="https://picsum.photos/400/300?random=4" class="article-img" alt="">
+        <div class="article-body">
+          <div class="article-tags"><span class="tag tag-src">卫报·科技</span><span class="tag tag-diff">考研</span></div>
+          <div class="article-atitle">The Rise of AI-Generated Academic Papers</div>
+          <div class="article-desc">Universities are struggling to detect machine-written submissions.</div>
+          <div class="article-footer">
+            <span class="article-meta">2340词 · 5小时前</span>
+            <button class="btn-fav" onclick="event.stopPropagation();handleFav(this)">♡</button>
+          </div>
+        </div>
+      </div>
+      <div class="article-card" onclick="navigate('reader')">
+        <img src="https://picsum.photos/400/300?random=5" class="article-img" alt="">
+        <div class="article-body">
+          <div class="article-tags"><span class="tag tag-src">经济学人</span><span class="tag tag-diff">专八</span></div>
+          <div class="article-atitle">Why Europe's Economy Cannot Catch Up with America</div>
+          <div class="article-desc">Structural issues hold back the EU's growth potential.</div>
+          <div class="article-footer">
+            <span class="article-meta">3500词 · 3小时前</span>
+            <button class="btn-fav" onclick="event.stopPropagation();handleFav(this)">♡</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: LOGIN
+     ================================================================ -->
+<div class="page" id="page-login">
+  <nav class="navbar">
+    <span class="nav-logo" onclick="navigate('home')">ReadEng</span>
+    <div class="nav-links"><a onclick="navigate('home')">文章</a><a>生词本</a><a>来源</a></div>
+    <div></div>
+  </nav>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1>欢迎回来</h1>
+      <p class="subtitle">登录你的 ReadEng 账号</p>
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" placeholder="请输入用户名" id="login-username">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" placeholder="请输入密码" id="login-password">
+        </div>
+        <div class="form-options">
+          <label><input type="checkbox"> 记住我</label>
+        </div>
+        <button type="button" class="btn-submit" onclick="doLogin()">登 录</button>
+      </form>
+      <div class="auth-footer">还没有账号？<a onclick="navigate('register')">立即注册</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: REGISTER
+     ================================================================ -->
+<div class="page" id="page-register">
+  <nav class="navbar">
+    <span class="nav-logo" onclick="navigate('home')">ReadEng</span>
+    <div class="nav-links"><a onclick="navigate('home')">文章</a><a>生词本</a><a>来源</a></div>
+    <div></div>
+  </nav>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1>创建账号</h1>
+      <p class="subtitle">注册后即可使用收藏、生词本等个性化功能</p>
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" placeholder="4–20位，字母/数字/下划线" id="reg-username">
+          <div class="form-hint">用户名注册后不可修改</div>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" placeholder="至少6位" id="reg-password">
+        </div>
+        <div class="form-group">
+          <label>确认密码</label>
+          <input type="password" placeholder="再次输入密码" id="reg-password2">
+        </div>
+        <div class="form-group">
+          <label>验证码</label>
+          <div class="captcha-row">
+            <input type="text" placeholder="输入计算结果" id="reg-captcha">
+            <div class="captcha-box" id="captchaBox" onclick="refreshCaptcha()"></div>
+          </div>
+          <div class="form-hint">点击验证码可刷新</div>
+        </div>
+        <button type="button" class="btn-submit" onclick="doRegister()">注 册</button>
+      </form>
+      <div class="auth-footer">已有账号？<a onclick="navigate('login')">立即登录</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: PROFILE
+     ================================================================ -->
+<div class="page" id="page-profile">
+  <nav class="navbar">
+    <span class="nav-logo" onclick="navigate('home')">ReadEng</span>
+    <div class="nav-links"><a onclick="navigate('home')">文章</a><a>生词本</a><a>来源</a></div>
+    <div class="nav-right">
+      <span class="dark-toggle">🌙</span>
+      <div class="user-menu">
+        <div class="user-avatar" id="profile-avatar-sm">读</div>
+        <div class="user-dropdown">
+          <div class="ud-header"><div class="name" id="profile-dd-name">读者</div><div class="uname" id="profile-dd-uname">@reader</div></div>
+          <a onclick="navigate('profile')">👤 个人中心</a>
+          <a onclick="showProfileTab('fav')">⭐ 我的收藏</a>
+          <a onclick="showProfileTab('history')">📖 阅读历史</a>
+          <a class="logout" onclick="doLogout()">🚪 退出登录</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="profile-layout">
+    <div class="profile-sidebar">
+      <div class="profile-info">
+        <div class="avatar-large" id="profile-avatar-lg">读</div>
+        <div class="profile-name" id="profile-nickname">读者</div>
+        <div class="profile-uname" id="profile-username">@reader</div>
+        <div class="profile-stats">
+          <div class="stat-item"><div class="stat-num">26</div><div class="stat-label">收藏</div></div>
+          <div class="stat-item"><div class="stat-num">143</div><div class="stat-label">生词</div></div>
+          <div class="stat-item"><div class="stat-num">89</div><div class="stat-label">已读</div></div>
+        </div>
+      </div>
+      <div class="profile-nav" id="profile-nav-list">
+        <a class="active" onclick="showProfileTab('fav',this)">⭐ 我的收藏</a>
+        <a onclick="showProfileTab('history',this)">📖 阅读历史</a>
+        <a>📝 生词本</a>
+        <a>👤 个人信息</a>
+        <a>🔒 账号安全</a>
+      </div>
+    </div>
+
+    <div class="profile-main">
+      <div id="profile-fav">
+        <h2 class="section-title">我的收藏</h2>
+        <p class="section-desc">共收藏 26 篇文章</p>
+        <div class="tabs"><div class="tab active">全部</div><div class="tab">BBC</div><div class="tab">卫报</div><div class="tab">大西洋月刊</div></div>
+        <div class="article-list">
+          <div class="ali"><img src="https://picsum.photos/320/220?random=10" class="ali-img" alt=""><div class="ali-body"><div class="ali-tags"><span class="tag tag-src">BBC·科技</span><span class="tag tag-diff">考研</span></div><div class="ali-title">Meta pulls Facebook ads recruiting for social media addiction lawsuits</div><div class="ali-meta">532词 · 收藏于 2026/4/10</div></div><div class="ali-actions"><button>♥</button><button>🗑</button></div></div>
+          <div class="ali"><img src="https://picsum.photos/320/220?random=11" class="ali-img" alt=""><div class="ali-body"><div class="ali-tags"><span class="tag tag-src">大西洋月刊</span><span class="tag tag-diff">六级</span></div><div class="ali-title">How Fake People Became Real Influencers</div><div class="ali-meta">7102词 · 收藏于 2026/4/9</div></div><div class="ali-actions"><button>♥</button><button>🗑</button></div></div>
+          <div class="ali"><img src="https://picsum.photos/320/220?random=12" class="ali-img" alt=""><div class="ali-body"><div class="ali-tags"><span class="tag tag-src">卫报·社会</span><span class="tag tag-diff">考研</span></div><div class="ali-title">The Hidden Cost of Fast Fashion Returns</div><div class="ali-meta">1856词 · 收藏于 2026/4/8</div></div><div class="ali-actions"><button>♥</button><button>🗑</button></div></div>
+        </div>
+      </div>
+
+      <div id="profile-history" style="display:none">
+        <h2 class="section-title">阅读历史</h2>
+        <p class="section-desc">共阅读 89 篇文章 · <a href="#" style="color:#C0592B;font-size:13px;">清空全部</a></p>
+        <div class="article-list">
+          <div class="ali"><img src="https://picsum.photos/320/220?random=20" class="ali-img" alt=""><div class="ali-body"><div class="ali-tags"><span class="tag tag-src">BBC·科技</span><span class="tag tag-diff">考研</span></div><div class="ali-title">Meta pulls Facebook ads recruiting for social media addiction lawsuits</div><div class="ali-meta">最后阅读 · 2026/4/10 14:30</div></div><div class="ali-actions"><button>🗑</button></div></div>
+          <div class="ali"><img src="https://picsum.photos/320/220?random=21" class="ali-img" alt=""><div class="ali-body"><div class="ali-tags"><span class="tag tag-src">经济学人</span><span class="tag tag-diff">专八</span></div><div class="ali-title">Why Europe's Economy Cannot Catch Up with America</div><div class="ali-meta">最后阅读 · 2026/4/9 20:15</div></div><div class="ali-actions"><button>🗑</button></div></div>
+          <div class="ali"><img src="https://picsum.photos/320/220?random=22" class="ali-img" alt=""><div class="ali-body"><div class="ali-tags"><span class="tag tag-src">大西洋月刊</span><span class="tag tag-diff">六级</span></div><div class="ali-title">How Fake People Became Real Influencers</div><div class="ali-meta">最后阅读 · 2026/4/9 18:00</div></div><div class="ali-actions"><button>🗑</button></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: READER
+     ================================================================ -->
+<div class="page" id="page-reader">
+  <nav class="navbar">
+    <span class="nav-logo" onclick="navigate('home')">ReadEng</span>
+    <div class="nav-links"><a onclick="navigate('home')">文章</a><a>生词本</a><a>来源</a></div>
+    <div class="nav-right" id="reader-nav-right"></div>
+  </nav>
+  <div class="reader-container">
+    <span class="back-link" onclick="navigate('home')">← 返回列表</span>
+    <div class="article-header">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <span class="tag tag-src">BBC·科技</span><span class="tag tag-diff">考研</span><span style="color:#999;font-size:13px">532词</span>
+      </div>
+      <h1 class="article-title-main">Meta pulls Facebook ads recruiting for social media addiction lawsuits</h1>
+      <div class="article-meta-bar">
+        <div class="meta-left"><span>2026/4/10</span><a href="#">原文 ↗</a></div>
+        <div><button class="btn-fav-lg" onclick="handleFavLg(this)">♡ 收藏</button></div>
+      </div>
+    </div>
+    <div class="controls">
+      <span style="font-size:13px;color:#888">字号</span>
+      <div class="font-sizes"><button>16</button><button class="active">18</button><button>20</button><button>22</button></div>
+      <button class="btn-translate">全文翻译</button>
+      <span class="hint-text">点击单词查词 / 点击句子翻译</span>
+    </div>
+    <div class="article-content">
+      <p><span class="word">Meta</span> <span class="word">pulls</span> <span class="word">Facebook</span> <span class="word">ads</span> <span class="word">recruiting</span> <span class="word">for</span> <span class="word">social</span> <span class="word">media</span> <span class="word">addiction</span> <span class="word">lawsuits.</span></p>
+      <p style="margin-top:20px"><span class="word">Meta</span> <span class="word">says</span> <span class="word">it</span> <span class="word">has</span> <span class="word">removed</span> <span class="word">adverts</span> <span class="word">by</span> <span class="word">law</span> <span class="word">firms</span> <span class="word">on</span> <span class="word">its</span> <span class="word">social</span> <span class="word">media</span> <span class="word">platforms</span> <span class="word">which</span> <span class="word">seek</span> <span class="word">clients</span> <span class="word">for</span> <span class="word">future</span> <span class="word">lawsuits</span> <span class="word">related</span> <span class="word">to</span> <span class="word">social</span> <span class="word">media</span> <span class="word">addiction.</span> <span class="word">The</span> <span class="word">Facebook</span> <span class="word">owner</span> <span class="word">has</span> <span class="word">recently</span> <span class="word">lost</span> <span class="word">two</span> <span class="word">large-scale</span> <span class="word">lawsuits,</span> <span class="word">including</span> <span class="word">a</span> <span class="word">landmark</span> <span class="word">trial</span> <span class="word">in</span> <span class="word">California</span> <span class="word">in</span> <span class="word">which</span> <span class="word">a</span> <span class="word">young</span> <span class="word">woman</span> <span class="word">successfully</span> <span class="word">sued</span> <span class="word">Meta</span> <span class="word">and</span> <span class="word">YouTube</span> <span class="word">over</span> <span class="word">her</span> <span class="word">childhood</span> <span class="word">addiction</span> <span class="word">to</span> <span class="word">social</span> <span class="word">media.</span></p>
+      <p style="margin-top:20px"><span class="word">In</span> <span class="word">a</span> <span class="word">statement,</span> <span class="word">Meta</span> <span class="word">said:</span> <span class="word">"We</span> <span class="word">will</span> <span class="word">not</span> <span class="word">allow</span> <span class="word">trial</span> <span class="word">lawyers</span> <span class="word">to</span> <span class="word">profit</span> <span class="word">from</span> <span class="word">our</span> <span class="word">platforms</span> <span class="word">while</span> <span class="word">simultaneously</span> <span class="word">claiming</span> <span class="word">they</span> <span class="word">are</span> <span class="word">harmful."</span> <span class="word">Emily</span> <span class="word">Jeffcott,</span> <span class="word">an</span> <span class="word">attorney</span> <span class="word">for</span> <span class="word">Morgan</span> <span class="word">&</span> <span class="word">Morgan,</span> <span class="word">one</span> <span class="word">of</span> <span class="word">the</span> <span class="word">firms</span> <span class="word">which</span> <span class="word">has</span> <span class="word">previously</span> <span class="word">advertised</span> <span class="word">on</span> <span class="word">Meta's</span> <span class="word">platforms,</span> <span class="word">described</span> <span class="word">the</span> <span class="word">move</span> <span class="word">as</span> <span class="word">"ironic".</span></p>
+    </div>
+  </div>
+  <div class="float-actions" id="reader-float">
+    <div class="float-btn" title="收藏" onclick="handleFav(this)">♡</div>
+    <div class="float-btn" title="回到顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</div>
+  </div>
+</div>
+
+<!-- ================================================================
+     PAGE: ADMIN
+     ================================================================ -->
+<div class="page" id="page-admin">
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">Read<em>Eng</em> Admin</div>
+      <nav class="sidebar-nav">
+        <div class="ns">概览</div>
+        <a class="active" onclick="showAdminPanel('dashboard',this)">📊 仪表盘</a>
+        <div class="ns">内容</div>
+        <a onclick="showAdminPanel('articles',this)">📄 文章管理</a>
+        <a onclick="showAdminPanel('sources',this)">🌐 来源管理</a>
+        <a onclick="showAdminPanel('crawl',this)">🤖 爬虫任务</a>
+        <div class="ns">用户</div>
+        <a onclick="showAdminPanel('users',this)">👥 用户管理</a>
+        <div class="ns">其他</div>
+        <a onclick="navigate('home')">↩ 返回前台</a>
+        <a onclick="doLogout()" style="color:#ff6b6b">🚪 退出登录</a>
+      </nav>
+      <div class="sidebar-footer">ReadEng Admin v2.0 · PostgreSQL</div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-header">
+        <h2 id="adminPageTitle">仪表盘</h2>
+        <div class="admin-header-right">
+          <span>2026年4月10日</span>
+          <div class="admin-avatar-sm">管</div>
+        </div>
+      </header>
+      <div class="admin-content">
+
+        <!-- Dashboard -->
+        <div class="admin-panel active" id="ap-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="label">今日新增文章</div><div class="value">12</div><div class="change up">↑ 20%</div></div>
+            <div class="stat-card"><div class="label">文章总数</div><div class="value">3,847</div><div class="change up">↑ 0.3%</div></div>
+            <div class="stat-card"><div class="label">注册用户</div><div class="value">1,256</div><div class="change up">↑ 3.2%</div></div>
+            <div class="stat-card"><div class="label">今日活跃</div><div class="value">328</div><div class="change down">↓ 5.1%</div></div>
+          </div>
+          <div class="charts-row">
+            <div class="chart-card"><h3>近30天趋势</h3><div class="chart-placeholder">📈 折线图区域<br>阅读量 / 新增用户 / 新增文章<br>接入 ECharts / Chart.js</div></div>
+            <div class="chart-card"><h3>来源分布</h3><div class="chart-placeholder">🍩 饼图区域<br>各来源文章占比</div></div>
+          </div>
+          <div class="top-articles"><h3>🔥 热门文章 TOP 5</h3>
+            <ul class="top-list">
+              <li><span class="top-rank r1">1</span><span class="top-title-text">Meta pulls Facebook ads recruiting...</span><span class="top-views">2,341</span></li>
+              <li><span class="top-rank r2">2</span><span class="top-title-text">How Fake People Became Real Influencers</span><span class="top-views">1,892</span></li>
+              <li><span class="top-rank r3">3</span><span class="top-title-text">Iran Out-Trolled the Troller in Chief</span><span class="top-views">1,654</span></li>
+              <li><span class="top-rank">4</span><span class="top-title-text">The Rise of AI-Generated Academic Papers</span><span class="top-views">1,230</span></li>
+              <li><span class="top-rank">5</span><span class="top-title-text">Why Europe's Economy Cannot Catch Up</span><span class="top-views">987</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Articles -->
+        <div class="admin-panel" id="ap-articles">
+          <div class="table-toolbar">
+            <div style="display:flex;gap:12px;align-items:center"><input type="text" class="search-input" placeholder="搜索文章标题..."><select class="filter-sel"><option>全部来源</option><option>BBC</option><option>卫报</option></select><select class="filter-sel"><option>全部难度</option><option>六级</option><option>考研</option></select></div>
+            <div style="display:flex;gap:10px"><button class="btn-admin btn-admin-outline">🔄 手动抓取</button><button class="btn-admin btn-admin-outline">📤 批量删除</button></div>
+          </div>
+          <table class="data-table"><thead><tr><th><input type="checkbox"></th><th>推荐</th><th>标题</th><th>来源</th><th>难度</th><th>字数</th><th>阅读量</th><th>收藏</th><th>发布时间</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox"></td><td><span class="recommend-star">★</span></td><td>Meta pulls Facebook ads recruiting...</td><td>BBC·科技</td><td><span class="badge badge-admin">考研</span></td><td>532</td><td>2,341</td><td>156</td><td>2026/4/10</td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">删除</button></td></tr>
+            <tr><td><input type="checkbox"></td><td>☆</td><td>How Fake People Became Real Influencers</td><td>大西洋月刊</td><td><span class="badge badge-user">六级</span></td><td>7,102</td><td>1,892</td><td>98</td><td>2026/4/10</td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">删除</button></td></tr>
+            <tr><td><input type="checkbox"></td><td>☆</td><td>Iran Out-Trolled the Troller in Chief</td><td>大西洋月刊</td><td><span class="badge badge-admin">考研</span></td><td>1,299</td><td>1,654</td><td>72</td><td>2026/4/10</td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">删除</button></td></tr>
+            <tr><td><input type="checkbox"></td><td>☆</td><td>The Rise of AI-Generated Academic Papers</td><td>卫报·科技</td><td><span class="badge badge-admin">考研</span></td><td>2,340</td><td>1,230</td><td>65</td><td>2026/4/9</td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">删除</button></td></tr>
+            <tr><td><input type="checkbox"></td><td>☆</td><td>Why Europe's Economy Cannot Catch Up</td><td>经济学人</td><td><span class="badge badge-user">专八</span></td><td>3,500</td><td>987</td><td>43</td><td>2026/4/9</td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">删除</button></td></tr>
+          </tbody></table>
+          <div class="pagination"><button>‹</button><button class="pg-active">1</button><button>2</button><button>3</button><button>...</button><button>42</button><button>›</button></div>
+        </div>
+
+        <!-- Users -->
+        <div class="admin-panel" id="ap-users">
+          <div class="table-toolbar"><input type="text" class="search-input" placeholder="搜索用户名..."><div style="display:flex;gap:10px"><select class="filter-sel"><option>全部角色</option><option>普通用户</option><option>管理员</option></select><select class="filter-sel"><option>全部状态</option><option>正常</option><option>已禁用</option></select></div></div>
+          <table class="data-table"><thead><tr><th>头像</th><th>用户名</th><th>角色</th><th>收藏</th><th>生词</th><th>注册时间</th><th>最近登录</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><div class="mini-avatar" style="background:#C0592B">张</div></td><td>zhangsan</td><td><span class="badge badge-user">用户</span></td><td>26</td><td>143</td><td>2026/3/15</td><td>2026/4/10</td><td><span class="badge badge-active">正常</span></td><td class="actions"><button class="btn-view">详情</button><button class="btn-edit">编辑</button><button class="btn-del">禁用</button></td></tr>
+            <tr><td><div class="mini-avatar" style="background:#3b82f6">李</div></td><td>lisi_cool</td><td><span class="badge badge-user">用户</span></td><td>12</td><td>67</td><td>2026/3/20</td><td>2026/4/9</td><td><span class="badge badge-active">正常</span></td><td class="actions"><button class="btn-view">详情</button><button class="btn-edit">编辑</button><button class="btn-del">禁用</button></td></tr>
+            <tr><td><div class="mini-avatar" style="background:#8b5cf6">王</div></td><td>admin_wang</td><td><span class="badge badge-admin">管理员</span></td><td>58</td><td>312</td><td>2026/1/10</td><td>2026/4/10</td><td><span class="badge badge-active">正常</span></td><td class="actions"><button class="btn-view">详情</button><button class="btn-edit">编辑</button></td></tr>
+            <tr><td><div class="mini-avatar" style="background:#888">赵</div></td><td>zhao_six</td><td><span class="badge badge-user">用户</span></td><td>3</td><td>21</td><td>2026/4/1</td><td>2026/4/5</td><td><span class="badge badge-disabled">已禁用</span></td><td class="actions"><button class="btn-view">详情</button><button class="btn-edit">启用</button></td></tr>
+          </tbody></table>
+          <div class="pagination"><button>‹</button><button class="pg-active">1</button><button>2</button><button>3</button><button>›</button></div>
+        </div>
+
+        <!-- Crawl -->
+        <div class="admin-panel" id="ap-crawl">
+          <div class="table-toolbar"><div style="display:flex;gap:12px;align-items:center"><span style="font-size:14px;color:#666">⏰ 定时任务：每日 00:00 (BJT) 自动执行</span></div><button class="btn-admin btn-admin-primary">🚀 立即全部抓取</button></div>
+          <table class="data-table"><thead><tr><th>执行时间</th><th>来源</th><th>触发</th><th>抓取数</th><th>状态</th><th>耗时</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>2026/4/10 00:00:15</td><td>全部来源</td><td>自动</td><td>12</td><td><span class="badge badge-success">成功</span></td><td>45s</td><td class="actions"><button class="btn-view">日志</button></td></tr>
+            <tr><td>2026/4/9 00:00:12</td><td>全部来源</td><td>自动</td><td>10</td><td><span class="badge badge-success">成功</span></td><td>38s</td><td class="actions"><button class="btn-view">日志</button></td></tr>
+            <tr><td>2026/4/8 15:30:00</td><td>BBC·科技</td><td>手动</td><td>3</td><td><span class="badge badge-success">成功</span></td><td>12s</td><td class="actions"><button class="btn-view">日志</button></td></tr>
+            <tr><td>2026/4/8 00:00:11</td><td>全部来源</td><td>自动</td><td>8</td><td><span class="badge badge-failed">部分失败</span></td><td>52s</td><td class="actions"><button class="btn-view">日志</button><button class="btn-edit">重试</button></td></tr>
+          </tbody></table>
+        </div>
+
+        <!-- Sources -->
+        <div class="admin-panel" id="ap-sources">
+          <div class="table-toolbar"><input type="text" class="search-input" placeholder="搜索来源名称..."><button class="btn-admin btn-admin-primary">+ 新增来源</button></div>
+          <table class="data-table"><thead><tr><th>来源</th><th>分类</th><th>Feed URL</th><th>文章数</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td><strong>卫报</strong></td><td>world</td><td style="font-size:12px;color:#999">https://theguardian.com/rss/world</td><td>642</td><td><span class="badge badge-active">启用</span></td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">停用</button></td></tr>
+            <tr><td><strong>卫报·科技</strong></td><td>technology</td><td style="font-size:12px;color:#999">https://theguardian.com/rss/technology</td><td>389</td><td><span class="badge badge-active">启用</span></td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">停用</button></td></tr>
+            <tr><td><strong>BBC·科技</strong></td><td>technology</td><td style="font-size:12px;color:#999">https://bbc.co.uk/rss/technology</td><td>521</td><td><span class="badge badge-active">启用</span></td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">停用</button></td></tr>
+            <tr><td><strong>大西洋月刊</strong></td><td>general</td><td style="font-size:12px;color:#999">https://theatlantic.com/feed/all</td><td>456</td><td><span class="badge badge-active">启用</span></td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-del">停用</button></td></tr>
+            <tr><td><strong>纽约时报</strong></td><td>general</td><td style="font-size:12px;color:#999">https://nytimes.com/rss</td><td>0</td><td><span class="badge badge-disabled">已停用</span></td><td class="actions"><button class="btn-edit">编辑</button><button class="btn-edit">启用</button></td></tr>
+          </tbody></table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT
+     ================================================================ -->
+<script>
+// ===== STATE =====
+let loggedIn = false;
+let currentUser = null; // { username, nickname, role }
+let captchaAnswer = 0;
+
+// ===== NAVIGATION =====
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + page);
+  if (target) target.classList.add('active');
+  window.scrollTo({ top: 0 });
+
+  // Update nav states
+  if (page === 'home') updateHomeNav();
+  if (page === 'reader') updateReaderNav();
+  if (page === 'register') refreshCaptcha();
+
+  // Show/hide reader float
+  document.getElementById('reader-float').style.display = page === 'reader' ? 'flex' : 'none';
+}
+
+// ===== HOME NAV =====
+function updateHomeNav() {
+  const el = document.getElementById('home-nav-right');
+  if (!loggedIn) {
+    el.innerHTML = `
+      <button class="btn-login" onclick="navigate('login')">登录</button>
+      <button class="btn-register" onclick="navigate('register')">注册</button>
+      <span class="dark-toggle">🌙</span>
+    `;
+  } else {
+    const ch = (currentUser.nickname || currentUser.username).charAt(0);
+    el.innerHTML = `
+      <span class="dark-toggle">🌙</span>
+      <div class="user-menu">
+        <div class="user-avatar">${ch}</div>
+        <div class="user-dropdown">
+          <div class="ud-header">
+            <div class="name">${currentUser.nickname || currentUser.username}</div>
+            <div class="uname">@${currentUser.username}</div>
+          </div>
+          <a onclick="navigate('profile')">👤 个人中心</a>
+          <a onclick="navigate('profile');showProfileTab('fav')">⭐ 我的收藏</a>
+          <a onclick="navigate('profile');showProfileTab('history')">📖 阅读历史</a>
+          <a class="logout" onclick="doLogout()">🚪 退出登录</a>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function updateReaderNav() {
+  const el = document.getElementById('reader-nav-right');
+  if (!loggedIn) {
+    el.innerHTML = `
+      <button class="btn-login" onclick="navigate('login')">登录</button>
+      <button class="btn-register" onclick="navigate('register')">注册</button>
+      <span class="dark-toggle">🌙</span>
+    `;
+  } else {
+    const ch = (currentUser.nickname || currentUser.username).charAt(0);
+    el.innerHTML = `
+      <span class="dark-toggle">🌙</span>
+      <div class="user-menu">
+        <div class="user-avatar">${ch}</div>
+        <div class="user-dropdown">
+          <div class="ud-header">
+            <div class="name">${currentUser.nickname || currentUser.username}</div>
+            <div class="uname">@${currentUser.username}</div>
+          </div>
+          <a onclick="navigate('profile')">👤 个人中心</a>
+          <a class="logout" onclick="doLogout()">🚪 退出登录</a>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ===== AUTH =====
+function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+  if (!username || !password) { showToast('请填写用户名和密码'); return; }
+
+  // Demo: admin/admin → admin role, others → user
+  if (username === 'admin' && password === 'admin') {
+    loggedIn = true;
+    currentUser = { username: 'admin', nickname: '管理员', role: 'admin' };
+    showToast('管理员登录成功，正在跳转后台...');
+    setTimeout(() => navigate('admin'), 800);
+  } else {
+    loggedIn = true;
+    currentUser = { username: username, nickname: username, role: 'user' };
+    updateProfilePage();
+    showToast('登录成功');
+    setTimeout(() => navigate('home'), 600);
+  }
+  // Clear form
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function doRegister() {
+  const u = document.getElementById('reg-username').value.trim();
+  const p = document.getElementById('reg-password').value.trim();
+  const p2 = document.getElementById('reg-password2').value.trim();
+  const c = document.getElementById('reg-captcha').value.trim();
+
+  if (!u) { showToast('请输入用户名'); return; }
+  if (u.length < 4 || u.length > 20) { showToast('用户名需4-20位'); return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(u)) { showToast('用户名仅限字母/数字/下划线'); return; }
+  if (!p || p.length < 6) { showToast('密码至少6位'); return; }
+  if (p !== p2) { showToast('两次密码不一致'); return; }
+  if (parseInt(c) !== captchaAnswer) { showToast('验证码错误'); refreshCaptcha(); return; }
+
+  loggedIn = true;
+  currentUser = { username: u, nickname: u, role: 'user' };
+  updateProfilePage();
+  showToast('注册成功，已自动登录');
+  // Clear
+  document.getElementById('reg-username').value = '';
+  document.getElementById('reg-password').value = '';
+  document.getElementById('reg-password2').value = '';
+  document.getElementById('reg-captcha').value = '';
+  setTimeout(() => navigate('home'), 600);
+}
+
+function doLogout() {
+  loggedIn = false;
+  currentUser = null;
+  showToast('已退出登录');
+  setTimeout(() => navigate('home'), 400);
+}
+
+// ===== CAPTCHA =====
+function refreshCaptcha() {
+  const a = Math.floor(Math.random() * 20) + 1;
+  const b = Math.floor(Math.random() * 20) + 1;
+  captchaAnswer = a + b;
+  const box = document.getElementById('captchaBox');
+  if (box) box.textContent = a + ' + ' + b + ' = ?';
+}
+
+// ===== PROFILE =====
+function updateProfilePage() {
+  if (!currentUser) return;
+  const ch = (currentUser.nickname || currentUser.username).charAt(0);
+  const els = {
+    'profile-avatar-sm': ch, 'profile-avatar-lg': ch,
+    'profile-dd-name': currentUser.nickname || currentUser.username,
+    'profile-dd-uname': '@' + currentUser.username,
+    'profile-nickname': currentUser.nickname || currentUser.username,
+    'profile-username': '@' + currentUser.username
+  };
+  for (const [id, val] of Object.entries(els)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+}
+
+function showProfileTab(tab, el) {
+  document.getElementById('profile-fav').style.display = tab === 'fav' ? 'block' : 'none';
+  document.getElementById('profile-history').style.display = tab === 'history' ? 'block' : 'none';
+  // Update nav active
+  document.querySelectorAll('#profile-nav-list a').forEach(a => a.classList.remove('active'));
+  if (el) {
+    el.classList.add('active');
+  } else {
+    const links = document.querySelectorAll('#profile-nav-list a');
+    links.forEach(a => {
+      if (tab === 'fav' && a.textContent.includes('收藏')) a.classList.add('active');
+      if (tab === 'history' && a.textContent.includes('历史')) a.classList.add('active');
+    });
+  }
+}
+
+// ===== FAVORITES =====
+function handleFav(btn) {
+  if (!loggedIn) { showLoginModal(); return; }
+  btn.classList.toggle('active');
+  btn.textContent = btn.classList.contains('active') ? '♥' : '♡';
+}
+
+function handleFavLg(btn) {
+  if (!loggedIn) { showLoginModal(); return; }
+  btn.classList.toggle('active');
+  btn.innerHTML = btn.classList.contains('active') ? '♥ 已收藏' : '♡ 收藏';
+}
+
+// ===== ADMIN =====
+const adminTitles = { dashboard: '仪表盘', articles: '文章管理', users: '用户管理', crawl: '爬虫任务', sources: '来源管理' };
+function showAdminPanel(name, el) {
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('ap-' + name);
+  if (panel) panel.classList.add('active');
+  document.querySelectorAll('#page-admin .sidebar-nav a').forEach(a => a.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('adminPageTitle').textContent = adminTitles[name] || name;
+}
+
+// ===== MODAL =====
+function showLoginModal() {
+  document.getElementById('loginModal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('loginModal').classList.remove('show');
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.remove('show');
+  void t.offsetWidth; // reflow
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== INIT =====
+document.getElementById('reader-float').style.display = 'none';
+updateHomeNav();
+refreshCaptcha();
+</script>
+
+</body>
+</html>

@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthContext";
 
 export default function Navbar() {
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
@@ -15,12 +21,32 @@ export default function Navbar() {
     }
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const toggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     document.documentElement.classList.toggle("dark", newMode);
     localStorage.setItem("darkMode", String(newMode));
   };
+
+  const handleLogout = () => {
+    logout();
+    setDropdownOpen(false);
+    setMobileMenuOpen(false);
+    router.push("/");
+  };
+
+  const displayName = user?.nickname || user?.username || "";
+  const avatarChar = displayName.charAt(0).toUpperCase();
 
   return (
     <nav
@@ -44,7 +70,7 @@ export default function Navbar() {
             <NavLink href="/sources">来源</NavLink>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-md transition-colors text-sm"
@@ -57,6 +83,93 @@ export default function Navbar() {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               )}
             </button>
+
+            {!loading && (
+              <>
+                {user ? (
+                  <div ref={dropdownRef} style={{ position: "relative" }}>
+                    <button
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
+                        background: "var(--accent)",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        border: "none",
+                      }}
+                    >
+                      {avatarChar}
+                    </button>
+
+                    {dropdownOpen && (
+                      <div style={{
+                        position: "absolute",
+                        right: 0,
+                        top: 40,
+                        background: "var(--bg-card)",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: 10,
+                        boxShadow: "0 8px 30px rgba(0,0,0,0.1)",
+                        minWidth: 200,
+                        overflow: "hidden",
+                        zIndex: 200,
+                      }}>
+                        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-color)" }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)" }}>{displayName}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>@{user.username}</div>
+                        </div>
+                        <DropdownItem href="/profile" onClick={() => setDropdownOpen(false)}>👤 个人中心</DropdownItem>
+                        <DropdownItem href="/profile?tab=favorites" onClick={() => setDropdownOpen(false)}>⭐ 我的收藏</DropdownItem>
+                        <DropdownItem href="/profile?tab=history" onClick={() => setDropdownOpen(false)}>📖 阅读历史</DropdownItem>
+                        <button
+                          onClick={handleLogout}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "10px 16px",
+                            color: "var(--accent)",
+                            fontSize: 14,
+                            border: "none",
+                            borderTop: "1px solid var(--border-color)",
+                            background: "none",
+                            cursor: "pointer",
+                            width: "100%",
+                            textAlign: "left",
+                          }}
+                        >
+                          🚪 退出登录
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="hidden md:flex items-center gap-2">
+                    <Link
+                      href="/login"
+                      className="btn-ghost"
+                      style={{ padding: "6px 16px", fontSize: 13, minHeight: "auto" }}
+                    >
+                      登录
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="btn-primary"
+                      style={{ padding: "6px 16px", fontSize: 13, minHeight: "auto" }}
+                    >
+                      注册
+                    </Link>
+                  </div>
+                )}
+              </>
+            )}
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -78,6 +191,32 @@ export default function Navbar() {
             <MobileNavLink href="/" onClick={() => setMobileMenuOpen(false)}>文章</MobileNavLink>
             <MobileNavLink href="/vocabulary" onClick={() => setMobileMenuOpen(false)}>生词本</MobileNavLink>
             <MobileNavLink href="/sources" onClick={() => setMobileMenuOpen(false)}>来源</MobileNavLink>
+            {!user && !loading && (
+              <>
+                <MobileNavLink href="/login" onClick={() => setMobileMenuOpen(false)}>登录</MobileNavLink>
+                <MobileNavLink href="/register" onClick={() => setMobileMenuOpen(false)}>注册</MobileNavLink>
+              </>
+            )}
+            {user && (
+              <>
+                <MobileNavLink href="/profile" onClick={() => setMobileMenuOpen(false)}>个人中心</MobileNavLink>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    padding: "8px 12px",
+                    fontSize: 14,
+                    color: "var(--accent)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                  }}
+                >
+                  退出登录
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -112,6 +251,29 @@ function MobileNavLink({
       onClick={onClick}
       className="px-3 py-2 rounded-md text-sm no-underline block"
       style={{ color: "var(--text-secondary)" }}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function DropdownItem({ href, children, onClick }: { href: string; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 16px",
+        color: "var(--text-secondary)",
+        fontSize: 14,
+        textDecoration: "none",
+        transition: "background 0.2s",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-secondary)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       {children}
     </Link>

@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
 import { runCrawlTask } from "@/lib/crawlTask";
 
-export async function POST() {
+export async function GET() {
+  const cronSecret = process.env.CRON_SECRET;
   try {
     const result = await runCrawlTask();
-
     return NextResponse.json({
-      success: true,
+      message: "定时抓取完成",
       totalFetched: result.totalFetched,
       errors: result.errors,
     });
-  } catch (error) {
-    console.error("Crawl error:", error);
-    return NextResponse.json(
-      { error: "爬取失败，请稍后重试" },
-      { status: 500 }
-    );
+  } catch (e) {
+    return NextResponse.json({ error: "抓取失败" }, { status: 500 });
   }
 }
