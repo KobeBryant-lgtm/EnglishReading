@@ -14,6 +14,7 @@ const PUBLIC_API_PATHS = [
   "/api/sources",
   "/api/vocabulary",
   "/api/crawl",
+  "/api/cron/crawl",
 ];
 
 const ADMIN_API_PREFIX = "/api/admin";
