@@ -175,11 +175,11 @@ function ProfileContent() {
   const displayName = user?.nickname || user?.username || "";
   const avatarChar = displayName.charAt(0).toUpperCase();
 
-  const tabs: { key: Tab; label: string; icon: string }[] = [
-    { key: "favorites", label: "我的收藏", icon: "⭐" },
-    { key: "history", label: "阅读历史", icon: "📖" },
-    { key: "info", label: "个人信息", icon: "👤" },
-    { key: "security", label: "账号安全", icon: "🔒" },
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "favorites", label: "我的收藏" },
+    { key: "history", label: "阅读历史" },
+    { key: "info", label: "个人信息" },
+    { key: "security", label: "账号安全" },
   ];
 
   return (
@@ -216,7 +216,7 @@ function ProfileContent() {
                   borderLeft: activeTab === tab.key ? "3px solid var(--accent)" : "3px solid transparent",
                 }}
               >
-                {tab.icon} {tab.label}
+                {tab.label}
               </button>
             ))}
           </div>
