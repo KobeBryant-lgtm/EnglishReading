@@ -33,7 +33,6 @@ export async function GET(request: Request) {
         title: true,
         source: true,
         summary: true,
-        imageUrl: true,
         difficulty: true,
         wordCount: true,
         publishedAt: true,

@@ -10,7 +10,6 @@ interface ArticleSummary {
   title: string;
   source: string;
   summary?: string;
-  imageUrl?: string;
   difficulty: string;
   wordCount: number;
   publishedAt?: string;
@@ -98,8 +97,8 @@ export default function HomeContent() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
+            {articles.map((article, index) => (
+              <ArticleCard key={article.id} article={article} coverIndex={index} />
             ))}
           </div>
 

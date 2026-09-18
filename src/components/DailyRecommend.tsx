@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { DIFFICULTY_LABELS, SOURCES } from "@/types";
-import { generateCoverImageUrl } from "@/lib/coverGenerator";
+import ArticleCover from "@/components/ArticleCover";
 
 interface ArticleData {
   id: string;
   title: string;
   source: string;
   summary?: string;
-  imageUrl?: string;
   difficulty: string;
   wordCount: number;
   publishedAt?: string | Date;
@@ -51,14 +50,16 @@ export default function DailyRecommend() {
     color: "#6b7280",
   };
   const difficultyLabel = DIFFICULTY_LABELS[article.difficulty] || article.difficulty;
-  const artCoverUrl = generateCoverImageUrl(article.title, article.source, 1200, 520);
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
       <div className="daily-recommend-card group cursor-pointer mb-8 sm:mb-10 overflow-hidden relative">
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-          style={{ backgroundImage: `url("${artCoverUrl}")` }}
+        <ArticleCover
+          title={article.title}
+          source={article.source}
+          sizes="(max-width: 768px) 100vw, 1280px"
+          preload
+          className="transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 daily-gradient-overlay"></div>
 

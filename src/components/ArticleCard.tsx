@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { DIFFICULTY_LABELS, SOURCES } from "@/types";
-import { generateCoverImageUrl } from "@/lib/coverGenerator";
+import ArticleCover from "@/components/ArticleCover";
 
 interface ArticleCardProps {
+  coverIndex?: number;
   article: {
     id: string;
     title: string;
     source: string;
     summary?: string;
-    imageUrl?: string;
     difficulty: string;
     wordCount: number;
     publishedAt?: string | Date;
@@ -23,7 +23,7 @@ SOURCES.forEach((s) => {
   SOURCE_MAP[s.name] = { name: s.nameCn, color: s.color };
 });
 
-export default function ArticleCard({ article }: ArticleCardProps) {
+export default function ArticleCard({ article, coverIndex }: ArticleCardProps) {
   const sourceInfo = SOURCE_MAP[article.source] || {
     name: article.source,
     color: "#6b7280",
@@ -32,16 +32,19 @@ export default function ArticleCard({ article }: ArticleCardProps) {
   const difficultyClass = `difficulty-${article.difficulty}`;
   const difficultyLabel = DIFFICULTY_LABELS[article.difficulty] || article.difficulty;
   const timeAgo = getTimeAgo(article.publishedAt || article.crawledAt);
-  const artCoverUrl = generateCoverImageUrl(article.title, article.source);
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
       <div className="card-modern group cursor-pointer overflow-hidden">
         <div className="flex flex-row">
-          <div
-            className="article-image-wrapper flex-shrink-0 w-32 sm:w-40 md:w-44 lg:w-48 relative overflow-hidden"
-            style={{ backgroundImage: `url("${artCoverUrl}")`, backgroundSize: "cover", backgroundPosition: "center" }}
-          >
+          <div className="article-image-wrapper flex-shrink-0 w-32 sm:w-44 lg:w-[40%] relative overflow-hidden">
+            <ArticleCover
+              title={article.title}
+              source={article.source}
+              variant={coverIndex}
+              sizes="(max-width: 640px) 128px, (max-width: 1024px) 176px, 260px"
+              className="transition-transform duration-500 group-hover:scale-[1.03]"
+            />
             <div className="image-overlay"></div>
           </div>
 
