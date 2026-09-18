@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { crawlSource, estimateDifficulty } from "@/lib/crawler";
 import { SOURCES } from "@/types";
-import type { SourceConfig } from "@/types";
 import { logEvent } from "@/lib/logger";
 
 type CrawlTriggerType = "auto" | "manual";

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function GET(request: Request) {
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const source = searchParams.get("source");
 
-    const where: any = { userId };
+    const where: Prisma.UserFavoriteWhereInput = { userId };
     if (source) {
       where.article = { source };
     }

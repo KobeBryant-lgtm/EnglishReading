@@ -31,8 +31,8 @@ export default function LoginPage() {
       } else {
         router.push("/");
       }
-    } catch (err: any) {
-      setError(err.message || "登录失败");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "登录失败");
     } finally {
       setLoading(false);
     }

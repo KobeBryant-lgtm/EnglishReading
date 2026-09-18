@@ -59,8 +59,8 @@ export default function RegisterPage() {
     try {
       await register(username, password, captchaId, captchaAnswer);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "注册失败");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "注册失败");
       fetchCaptcha();
     } finally {
       setLoading(false);

@@ -185,8 +185,6 @@ async function crawlSource(source: SourceConfig): Promise<CrawledArticle[]> {
 
   try {
     const proxyUrl = getProxyUrl();
-    let feed: Parser.Output<Parser.Item>;
-
     const methods: string[] = [];
 
     if (proxyUrl) {
@@ -194,7 +192,7 @@ async function crawlSource(source: SourceConfig): Promise<CrawledArticle[]> {
     }
     methods.push("direct", "rss2json", "allorigins");
 
-    feed = await tryFetchFeed(source.rssUrl, proxyUrl);
+    const feed: Parser.Output<Parser.Item> = await tryFetchFeed(source.rssUrl, proxyUrl);
 
     const articles: CrawledArticle[] = [];
     const items = feed.items.slice(0, 5);

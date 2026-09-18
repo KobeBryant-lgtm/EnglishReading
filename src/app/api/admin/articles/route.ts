@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function GET(request: Request) {
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
 
-    const where: any = { isDeleted: false };
+    const where: Prisma.ArticleWhereInput = { isDeleted: false };
     if (search) where.title = { contains: search, mode: "insensitive" };
     if (source) where.source = source;
     if (difficulty) where.difficulty = difficulty;

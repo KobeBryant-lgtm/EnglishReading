@@ -95,10 +95,6 @@ export async function GET(request: Request) {
     const definitionsToTranslate = rawMeanings.flatMap((m: { definitions: { definition: string }[] }) =>
       m.definitions.map((d: { definition: string }) => d.definition)
     );
-    const examplesToTranslate = rawMeanings.flatMap((m: { definitions: { example?: string }[] }) =>
-      m.definitions.filter((d: { example?: string }) => d.example).map((d: { example?: string }) => d.example || "")
-    );
-
     let translatedBatch: string[];
     try {
       const apiKey = process.env.DEEPL_API_KEY;

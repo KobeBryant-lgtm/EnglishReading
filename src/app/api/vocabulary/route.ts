@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function GET(request: Request) {
   const userId = request.headers.get("x-user-id");
+  if (!userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -11,12 +15,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    const where: any = {};
-    if (userId) {
-      where.userId = userId;
-    } else {
-      where.userId = null;
-    }
+    const where: Prisma.VocabularyWhereInput = { userId };
     if (status === "learning") where.mastered = false;
     if (status === "mastered") where.mastered = true;
     if (search) where.word = { contains: search, mode: "insensitive" };
@@ -44,6 +43,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const userId = request.headers.get("x-user-id");
+  if (!userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  }
 
   try {
     const body = await request.json();
@@ -53,25 +55,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请提供单词" }, { status: 400 });
     }
 
-    if (userId) {
-      const existing = await prisma.vocabulary.findUnique({
-        where: { userId_word: { userId, word } },
-      });
+    const existing = await prisma.vocabulary.findUnique({
+      where: { userId_word: { userId, word } },
+    });
 
-      if (existing) {
-        const updated = await prisma.vocabulary.update({
-          where: { id: existing.id },
-          data: {
-            reviewCount: { increment: 1 },
-            lastReviewedAt: new Date(),
-            ...(definition && { definition }),
-            ...(phonetic && { phonetic }),
-            ...(partOfSpeech && { partOfSpeech }),
-            ...(exampleSentence && { exampleSentence }),
-          },
-        });
-        return NextResponse.json(updated);
-      }
+    if (existing) {
+      const updated = await prisma.vocabulary.update({
+        where: { id: existing.id },
+        data: {
+          reviewCount: { increment: 1 },
+          lastReviewedAt: new Date(),
+          ...(definition && { definition }),
+          ...(phonetic && { phonetic }),
+          ...(partOfSpeech && { partOfSpeech }),
+          ...(exampleSentence && { exampleSentence }),
+        },
+      });
+      return NextResponse.json(updated);
     }
 
     const vocab = await prisma.vocabulary.create({
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         partOfSpeech,
         exampleSentence,
         articleId,
-        userId: userId || undefined,
+        userId,
       },
     });
 
@@ -94,6 +94,9 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const userId = request.headers.get("x-user-id");
+  if (!userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  }
 
   try {
     const { searchParams } = new URL(request.url);
@@ -103,8 +106,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "请提供单词ID" }, { status: 400 });
     }
 
-    const where: any = { id };
-    if (userId) where.userId = userId;
+    const where: Prisma.VocabularyWhereInput = {
+      id,
+      userId,
+    };
 
     await prisma.vocabulary.deleteMany({ where });
     return NextResponse.json({ success: true });
@@ -115,6 +120,9 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   const userId = request.headers.get("x-user-id");
+  if (!userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  }
 
   try {
     const { id, mastered, status } = await request.json();
@@ -123,15 +131,23 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "请提供单词ID" }, { status: 400 });
     }
 
-    const updateData: any = {
+    const updateData: Prisma.VocabularyUpdateInput = {
       reviewCount: { increment: 1 },
       lastReviewedAt: new Date(),
     };
     if (mastered !== undefined) updateData.mastered = mastered;
     if (status) updateData.status = status;
 
+    const target = await prisma.vocabulary.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+    if (!target) {
+      return NextResponse.json({ error: "单词不存在" }, { status: 404 });
+    }
+
     const updated = await prisma.vocabulary.update({
-      where: { id },
+      where: { id: target.id },
       data: updateData,
     });
 

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import WordPopup from "./WordPopup";
 import type { DictionaryResult } from "@/types";
+import { useAuth } from "@/components/AuthContext";
 
 interface ArticleReaderProps {
   content: string;
@@ -22,6 +24,8 @@ interface ParagraphGroup {
 }
 
 export default function ArticleReader({ content, articleId }: ArticleReaderProps) {
+  const router = useRouter();
+  const { getToken } = useAuth();
   const [paragraphs, setParagraphs] = useState<ParagraphGroup[]>(() =>
     groupByParagraphs(splitIntoSentences(content))
   );
@@ -76,16 +80,26 @@ export default function ArticleReader({ content, articleId }: ArticleReaderProps
 
   const handleAddToVocabulary = useCallback(
     async (word: string, data: { definition?: string; phonetic?: string; partOfSpeech?: string }) => {
+      const token = getToken();
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
       try {
-        await fetch("/api/vocabulary", {
+        const response = await fetch("/api/vocabulary", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ word, articleId, ...data }),
         });
+        if (!response.ok) return;
         setVocabularySet((prev) => new Set(prev).add(word));
       } catch {}
     },
-    [articleId]
+    [articleId, getToken, router]
   );
 
   const translateSentence = useCallback(

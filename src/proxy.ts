@@ -10,7 +10,6 @@ const PUBLIC_API_PATHS = [
   "/api/dictionary",
   "/api/translate",
   "/api/sources",
-  "/api/vocabulary",
   "/api/cron/crawl",
   "/api/health",
 ];
@@ -71,7 +70,7 @@ async function verifyTokenEdge(token: string): Promise<{ userId: string; usernam
   }
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/")) {

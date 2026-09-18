@@ -25,21 +25,29 @@ export default function VocabularyContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewIndex, setReviewIndex] = useState(0);
-  const { user, getToken } = useAuth();
+  const { user, loading: authLoading, getToken } = useAuth();
 
   const fetchVocabulary = useCallback(async () => {
+    if (authLoading) return;
+    if (!user) {
+      setWords([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const headers: Record<string, string> = {};
       const token = getToken();
       if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch("/api/vocabulary", { headers });
+      if (!res.ok) throw new Error("获取生词本失败");
       const data = await res.json();
       setWords(data.vocabulary || data || []);
     } catch {} finally {
       setLoading(false);
     }
-  }, [getToken]);
+  }, [authLoading, getToken, user]);
 
   useEffect(() => { fetchVocabulary(); }, [fetchVocabulary]);
 
@@ -59,24 +67,36 @@ export default function VocabularyContent() {
 
   const toggleMastered = async (id: string, mastered: boolean) => {
     try {
-      await fetch("/api/vocabulary", {
+      const response = await fetch("/api/vocabulary", {
         method: "PATCH",
         headers: getAuthHeaders(),
         body: JSON.stringify({ id, mastered: !mastered }),
       });
+      if (!response.ok) return;
       setWords((prev) => prev.map((w) => (w.id === id ? { ...w, mastered: !mastered } : w)));
     } catch {}
   };
 
   const deleteWord = async (id: string) => {
     try {
-      await fetch(`/api/vocabulary?id=${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      const response = await fetch(`/api/vocabulary?id=${id}`, { method: "DELETE", headers: getAuthHeaders() });
+      if (!response.ok) return;
       setWords((prev) => prev.filter((w) => w.id !== id));
     } catch {}
   };
 
   const learningCount = words.filter((w) => !w.mastered).length;
   const masteredCount = words.filter((w) => w.mastered).length;
+
+  if (!authLoading && !user) {
+    return (
+      <div className="max-w-lg mx-auto px-5 py-24 text-center">
+        <h1 className="text-2xl font-semibold mb-3" style={{ color: "var(--text-primary)", fontFamily: "var(--serif)" }}>登录后使用生词本</h1>
+        <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>登录后即可保存文章中的单词，并在不同设备间同步复习进度。</p>
+        <Link href="/login" className="btn-primary no-underline">去登录</Link>
+      </div>
+    );
+  }
 
   if (reviewMode && filteredWords.length > 0) {
     const currentWord = filteredWords[reviewIndex % filteredWords.length];
