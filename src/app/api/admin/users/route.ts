@@ -1,22 +1,30 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.trim();
     const role = searchParams.get("role");
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const requestedPage = Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(searchParams.get("limit") || "20", 10) || 20));
 
-    const where: any = {};
-    if (search) where.username = { contains: search, mode: "insensitive" };
+    const where: Prisma.UserWhereInput = {};
+    if (search) {
+      where.OR = [
+        { username: { contains: search, mode: "insensitive" } },
+        { nickname: { contains: search, mode: "insensitive" } },
+      ];
+    }
     if (role) where.role = role;
     if (status) where.status = status;
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
+    const total = await prisma.user.count({ where });
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.min(requestedPage, totalPages);
+    const users = await prisma.user.findMany({
         where,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
@@ -34,9 +42,7 @@ export async function GET(request: Request) {
             select: { favorites: true, vocabulary: true },
           },
         },
-      }),
-      prisma.user.count({ where }),
-    ]);
+      });
 
     return NextResponse.json({
       users: users.map((u) => ({
@@ -46,9 +52,10 @@ export async function GET(request: Request) {
       })),
       total,
       page,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch admin users:", error);
     return NextResponse.json({ error: "获取用户列表失败" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { DictionaryResult } from "@/types";
+import { consumeRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const PART_OF_SPEECH_CN: Record<string, string> = {
   noun: "n.",
@@ -44,6 +45,13 @@ async function translateWithDeepL(text: string): Promise<string> {
 }
 
 export async function GET(request: Request) {
+  const rateLimit = await consumeRateLimit(request, {
+    scope: "dictionary",
+    limit: 60,
+    windowMs: 60 * 1000,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   const { searchParams } = new URL(request.url);
   const word = searchParams.get("word")?.trim().toLowerCase();
 
@@ -90,9 +98,6 @@ export async function GET(request: Request) {
     const examplesToTranslate = rawMeanings.flatMap((m: { definitions: { example?: string }[] }) =>
       m.definitions.filter((d: { example?: string }) => d.example).map((d: { example?: string }) => d.example || "")
     );
-
-    const allTexts = [...definitionsToTranslate, ...examplesToTranslate];
-    const batchText = allTexts.join("\n");
 
     let translatedBatch: string[];
     try {

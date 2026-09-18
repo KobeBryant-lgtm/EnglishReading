@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { hashPassword, generateAccessToken, generateRefreshToken, verifyCaptcha } from "@/lib/auth";
+import { consumeRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  const rateLimit = await consumeRateLimit(request, {
+    scope: "register",
+    limit: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   try {
     const { username, password, captchaId, captchaAnswer } = await request.json();
 
@@ -26,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请填写验证码" }, { status: 400 });
     }
 
-    if (!verifyCaptcha(captchaId, Number(captchaAnswer))) {
+    if (!(await verifyCaptcha(captchaId, Number(captchaAnswer)))) {
       return NextResponse.json({ error: "验证码错误" }, { status: 400 });
     }
 
@@ -65,7 +73,8 @@ export async function POST(request: Request) {
         role: user.role,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("Registration failed:", error);
     return NextResponse.json({ error: "注册失败" }, { status: 500 });
   }
 }

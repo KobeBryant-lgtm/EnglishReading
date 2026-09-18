@@ -22,35 +22,26 @@ async function main() {
 
   const articles = await crawlAllSources();
 
-  let saved = 0;
-  let skipped = 0;
-
-  for (const article of articles) {
-    const existing = await prisma.article.findFirst({
-      where: { sourceUrl: article.sourceUrl },
-    });
-
-    if (existing) {
-      skipped++;
-      continue;
-    }
-
-    await prisma.article.create({
-      data: {
+  const result = await prisma.article.createMany({
+    data: articles.map((article) => ({
         title: article.title,
         source: article.source,
         sourceUrl: article.sourceUrl,
         author: article.author,
         content: article.content,
         summary: article.summary,
-        imageUrl: article.imageUrl,
+        imageUrl:
+          article.imageUrl && article.imageUrl.length <= 512
+            ? article.imageUrl
+            : undefined,
         difficulty: (article as typeof article & { difficulty: string }).difficulty || "kaoyan",
         wordCount: article.wordCount,
         publishedAt: article.publishedAt,
-      },
-    });
-    saved++;
-  }
+    })),
+    skipDuplicates: true,
+  });
+  const saved = result.count;
+  const skipped = articles.length - saved;
 
   await prisma.crawlTask.create({
     data: {

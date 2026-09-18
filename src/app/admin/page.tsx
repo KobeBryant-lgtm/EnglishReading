@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthContext";
 
 type AdminTab = "dashboard" | "articles" | "users" | "crawl" | "sources";
+type Notice = { type: "success" | "error"; message: string };
+
+const USER_PAGE_SIZE = 20;
+
+async function getResponseError(response: Response, fallback: string): Promise<string> {
+  try {
+    const data = await response.json();
+    return data.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 interface Stats {
   totalArticles: number;
@@ -86,9 +98,13 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [userTotal, setUserTotal] = useState(0);
   const [userPage, setUserPage] = useState(1);
+  const [userSearchInput, setUserSearchInput] = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [crawlTasks, setCrawlTasks] = useState<CrawlTask[]>([]);
   const [sources, setSources] = useState<AdminSource[]>([]);
   const [triggering, setTriggering] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) {
@@ -102,111 +118,170 @@ export default function AdminPage() {
   }), [getToken]);
 
   const fetchStats = useCallback(async () => {
+    setDataLoading(true);
     try {
       const res = await fetch("/api/admin/dashboard/stats", { headers: authHeaders() });
-      if (res.ok) setStats(await res.json());
-    } catch {}
+      if (!res.ok) throw new Error(await getResponseError(res, "仪表盘加载失败"));
+      setStats(await res.json());
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "仪表盘加载失败" });
+    } finally {
+      setDataLoading(false);
+    }
   }, [authHeaders]);
 
   const fetchArticles = useCallback(async (page: number) => {
+    setDataLoading(true);
     try {
       const res = await fetch(`/api/admin/articles?page=${page}&limit=10`, { headers: authHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setArticles(data.articles);
-        setArticleTotal(data.total);
-        setArticlePage(page);
-      }
-    } catch {}
+      if (!res.ok) throw new Error(await getResponseError(res, "文章列表加载失败"));
+      const data = await res.json();
+      setArticles(data.articles);
+      setArticleTotal(data.total);
+      setArticlePage(page);
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "文章列表加载失败" });
+    } finally {
+      setDataLoading(false);
+    }
   }, [authHeaders]);
 
-  const fetchUsers = useCallback(async (page: number) => {
+  const fetchUsers = useCallback(async (page: number, search = "") => {
+    setDataLoading(true);
     try {
-      const res = await fetch(`/api/admin/users?page=${page}&limit=10`, { headers: authHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-        setUserTotal(data.total);
-        setUserPage(page);
-      }
-    } catch {}
+      const params = new URLSearchParams({ page: String(page), limit: String(USER_PAGE_SIZE) });
+      if (search) params.set("search", search);
+      const res = await fetch(`/api/admin/users?${params.toString()}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(await getResponseError(res, "用户列表加载失败"));
+      const data = await res.json();
+      setUsers(data.users);
+      setUserTotal(data.total);
+      setUserPage(data.page);
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "用户列表加载失败" });
+    } finally {
+      setDataLoading(false);
+    }
   }, [authHeaders]);
 
   const fetchCrawlTasks = useCallback(async () => {
+    setDataLoading(true);
     try {
       const res = await fetch("/api/admin/crawl-tasks", { headers: authHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setCrawlTasks(data.tasks);
-      }
-    } catch {}
+      if (!res.ok) throw new Error(await getResponseError(res, "爬虫任务加载失败"));
+      const data = await res.json();
+      setCrawlTasks(data.tasks);
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "爬虫任务加载失败" });
+    } finally {
+      setDataLoading(false);
+    }
   }, [authHeaders]);
 
   const fetchSources = useCallback(async () => {
+    setDataLoading(true);
     try {
       const res = await fetch("/api/admin/sources", { headers: authHeaders() });
-      if (res.ok) setSources(await res.json());
-    } catch {}
+      if (!res.ok) throw new Error(await getResponseError(res, "来源列表加载失败"));
+      setSources(await res.json());
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "来源列表加载失败" });
+    } finally {
+      setDataLoading(false);
+    }
   }, [authHeaders]);
 
   useEffect(() => {
     if (user?.role !== "admin") return;
     if (activeTab === "dashboard") fetchStats();
     if (activeTab === "articles") fetchArticles(1);
-    if (activeTab === "users") fetchUsers(1);
+    if (activeTab === "users") fetchUsers(1, userSearch);
     if (activeTab === "crawl") fetchCrawlTasks();
     if (activeTab === "sources") fetchSources();
-  }, [activeTab, user, fetchStats, fetchArticles, fetchUsers, fetchCrawlTasks, fetchSources]);
+  }, [activeTab, user, userSearch, fetchStats, fetchArticles, fetchUsers, fetchCrawlTasks, fetchSources]);
 
   const handleDeleteArticle = async (id: string) => {
     if (!confirm("确定删除此文章？")) return;
-    await fetch(`/api/admin/articles?id=${id}`, { method: "DELETE", headers: authHeaders() });
-    fetchArticles(articlePage);
+    const response = await fetch(`/api/admin/articles?id=${id}`, { method: "DELETE", headers: authHeaders() });
+    if (!response.ok) {
+      setNotice({ type: "error", message: await getResponseError(response, "删除文章失败") });
+      return;
+    }
+    setNotice({ type: "success", message: "文章已删除" });
+    await fetchArticles(articlePage);
   };
 
   const handleToggleRecommend = async (id: string) => {
-    await fetch(`/api/admin/articles/${id}/recommend`, { method: "PUT", headers: authHeaders() });
-    fetchArticles(articlePage);
+    const response = await fetch(`/api/admin/articles/${id}/recommend`, { method: "PUT", headers: authHeaders() });
+    if (!response.ok) {
+      setNotice({ type: "error", message: await getResponseError(response, "更新推荐状态失败") });
+      return;
+    }
+    setNotice({ type: "success", message: "推荐状态已更新" });
+    await fetchArticles(articlePage);
   };
 
   const handleToggleUserStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "active" ? "disabled" : "active";
-    await fetch(`/api/admin/users/${id}/status`, {
+    const response = await fetch(`/api/admin/users/${id}/status`, {
       method: "PUT",
       headers: authHeaders(),
       body: JSON.stringify({ status: newStatus }),
     });
-    fetchUsers(userPage);
+    if (!response.ok) {
+      setNotice({ type: "error", message: await getResponseError(response, "更新用户状态失败") });
+      return;
+    }
+    setNotice({ type: "success", message: "用户状态已更新" });
+    await fetchUsers(userPage, userSearch);
   };
 
   const handleToggleUserRole = async (id: string, currentRole: string) => {
     const newRole = currentRole === "admin" ? "user" : "admin";
     if (!confirm(`确定将角色切换为${newRole === "admin" ? "管理员" : "普通用户"}？`)) return;
-    await fetch(`/api/admin/users/${id}/role`, {
+    const response = await fetch(`/api/admin/users/${id}/role`, {
       method: "PUT",
       headers: authHeaders(),
       body: JSON.stringify({ role: newRole }),
     });
-    fetchUsers(userPage);
+    if (!response.ok) {
+      setNotice({ type: "error", message: await getResponseError(response, "更新用户角色失败") });
+      return;
+    }
+    setNotice({ type: "success", message: "用户角色已更新" });
+    await fetchUsers(userPage, userSearch);
   };
 
   const handleTriggerCrawl = async () => {
     setTriggering(true);
     try {
-      await fetch("/api/admin/crawl-tasks/trigger", { method: "POST", headers: authHeaders() });
-      fetchCrawlTasks();
+      const response = await fetch("/api/admin/crawl-tasks/trigger", { method: "POST", headers: authHeaders() });
+      if (!response.ok) {
+        setNotice({ type: "error", message: await getResponseError(response, "触发抓取失败") });
+        return;
+      }
+      const data = await response.json();
+      setNotice({ type: "success", message: `抓取完成，新增 ${data.totalFetched} 篇文章` });
+      await fetchCrawlTasks();
+    } catch (error) {
+      setNotice({ type: "error", message: error instanceof Error ? error.message : "触发抓取失败" });
     } finally {
       setTriggering(false);
     }
   };
 
   const handleToggleSource = async (id: string, isActive: boolean) => {
-    await fetch(`/api/admin/sources/${id}`, {
+    const response = await fetch(`/api/admin/sources/${id}`, {
       method: "PUT",
       headers: authHeaders(),
       body: JSON.stringify({ isActive: !isActive }),
     });
-    fetchSources();
+    if (!response.ok) {
+      setNotice({ type: "error", message: await getResponseError(response, "更新来源状态失败") });
+      return;
+    }
+    setNotice({ type: "success", message: "来源状态已更新" });
+    await fetchSources();
   };
 
   if (loading || user?.role !== "admin") {
@@ -227,6 +302,7 @@ export default function AdminPage() {
     { label: "注册用户", value: stats.totalUsers, sub: "人" },
     { label: "今日活跃", value: stats.todayActiveUsers, sub: "人" },
   ] : [];
+  const userTotalPages = Math.max(1, Math.ceil(userTotal / USER_PAGE_SIZE));
 
   const sidebarBg = "#0f0f13";
   const sidebarHover = "rgba(255,255,255,0.04)";
@@ -308,12 +384,41 @@ export default function AdminPage() {
           <h2 style={{ fontSize: 15, fontWeight: 600, color: "#1a1a1a" }}>
             {tabs.find((t) => t.key === activeTab)?.label}
           </h2>
-          <div style={{ fontSize: 12, color: "#999" }}>
-            {new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 12, color: "#999" }}>
+            {dataLoading && <span role="status">加载中...</span>}
+            <span>{new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })}</span>
           </div>
         </header>
 
         <div style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}>
+          {notice && (
+            <div
+              role={notice.type === "error" ? "alert" : "status"}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 16,
+                marginBottom: 18,
+                padding: "11px 14px",
+                borderRadius: 8,
+                border: `1px solid ${notice.type === "error" ? "#fecaca" : "#bbf7d0"}`,
+                background: notice.type === "error" ? "#fef2f2" : "#f0fdf4",
+                color: notice.type === "error" ? "#b91c1c" : "#15803d",
+                fontSize: 13,
+              }}
+            >
+              <span>{notice.message}</span>
+              <button
+                type="button"
+                onClick={() => setNotice(null)}
+                aria-label="关闭提示"
+                style={{ border: "none", background: "transparent", color: "inherit", cursor: "pointer", fontSize: 16 }}
+              >
+                ×
+              </button>
+            </div>
+          )}
           {activeTab === "dashboard" && (
             <div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
@@ -388,8 +493,43 @@ export default function AdminPage() {
 
           {activeTab === "users" && (
             <div>
-              <div style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>共 {userTotal} 位用户</div>
-              <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e8e8e5", overflow: "hidden" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 13, color: "#999" }}>
+                  共 {userTotal} 位用户 · 第 {userPage} / {userTotalPages} 页
+                </div>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    setUserSearch(userSearchInput.trim());
+                  }}
+                  style={{ display: "flex", gap: 8 }}
+                >
+                  <input
+                    type="search"
+                    value={userSearchInput}
+                    onChange={(event) => setUserSearchInput(event.target.value)}
+                    placeholder="搜索用户名或昵称"
+                    aria-label="搜索用户名或昵称"
+                    style={{ width: 220, padding: "8px 12px", borderRadius: 6, border: "1px solid #e8e8e5", background: "#fff", color: "#1a1a1a", fontSize: 13, outline: "none" }}
+                  />
+                  <button type="submit" style={{ padding: "8px 14px", borderRadius: 6, border: "none", background: accentColor, color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 500 }}>
+                    搜索
+                  </button>
+                  {userSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserSearchInput("");
+                        setUserSearch("");
+                      }}
+                      style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #e8e8e5", background: "#fff", color: "#777", fontSize: 12, cursor: "pointer" }}
+                    >
+                      清除
+                    </button>
+                  )}
+                </form>
+              </div>
+              <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #e8e8e5", overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "#fafaf8" }}>
@@ -399,6 +539,13 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: "36px 16px", textAlign: "center", fontSize: 13, color: "#999" }}>
+                          没有找到匹配的用户
+                        </td>
+                      </tr>
+                    )}
                     {users.map((u) => (
                       <tr key={u.id} style={{ borderBottom: "1px solid #f2f2f0" }}>
                         <td style={{ padding: "12px 16px", fontSize: 13, color: "#1a1a1a", fontWeight: 500 }}>{u.username}</td>
@@ -415,10 +562,10 @@ export default function AdminPage() {
                           <span style={{ fontSize: 12, color: u.status === "active" ? "#666" : "#ef4444" }}>{u.status === "active" ? "正常" : "已禁用"}</span>
                         </td>
                         <td style={{ padding: "12px 16px", display: "flex", gap: 6 }}>
-                          <button onClick={() => handleToggleUserStatus(u.id, u.status)} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #e8e8e5", background: "#fff", color: u.status === "active" ? "#ef4444" : "#22c55e", fontSize: 11, cursor: "pointer", fontWeight: 500 }}>
-                            {u.status === "active" ? "禁用" : "启用"}
+                          <button disabled={u.id === user?.id} onClick={() => handleToggleUserStatus(u.id, u.status)} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #e8e8e5", background: "#fff", color: u.status === "active" ? "#ef4444" : "#22c55e", fontSize: 11, cursor: u.id === user?.id ? "not-allowed" : "pointer", fontWeight: 500, opacity: u.id === user?.id ? 0.45 : 1 }}>
+                            {u.id === user?.id ? "当前账号" : u.status === "active" ? "禁用" : "启用"}
                           </button>
-                          <button onClick={() => handleToggleUserRole(u.id, u.role)} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #e8e8e5", background: "#fff", color: accentColor, fontSize: 11, cursor: "pointer", fontWeight: 500 }}>
+                          <button disabled={u.id === user?.id} onClick={() => handleToggleUserRole(u.id, u.role)} style={{ padding: "4px 10px", borderRadius: 4, border: "1px solid #e8e8e5", background: "#fff", color: accentColor, fontSize: 11, cursor: u.id === user?.id ? "not-allowed" : "pointer", fontWeight: 500, opacity: u.id === user?.id ? 0.45 : 1 }}>
                             切换角色
                           </button>
                         </td>
@@ -427,6 +574,15 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
+              {userTotalPages > 1 && (
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginTop: 16 }}>
+                  <button disabled={userPage <= 1} onClick={() => fetchUsers(1, userSearch)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e8e8e5", background: "#fff", color: "#777", fontSize: 12, cursor: userPage <= 1 ? "not-allowed" : "pointer", opacity: userPage <= 1 ? 0.45 : 1 }}>首页</button>
+                  <button disabled={userPage <= 1} onClick={() => fetchUsers(userPage - 1, userSearch)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e8e8e5", background: "#fff", color: "#777", fontSize: 12, cursor: userPage <= 1 ? "not-allowed" : "pointer", opacity: userPage <= 1 ? 0.45 : 1 }}>上一页</button>
+                  <span style={{ padding: "6px 10px", color: "#777", fontSize: 12 }}>{userPage} / {userTotalPages}</span>
+                  <button disabled={userPage >= userTotalPages} onClick={() => fetchUsers(userPage + 1, userSearch)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e8e8e5", background: "#fff", color: "#777", fontSize: 12, cursor: userPage >= userTotalPages ? "not-allowed" : "pointer", opacity: userPage >= userTotalPages ? 0.45 : 1 }}>下一页</button>
+                  <button disabled={userPage >= userTotalPages} onClick={() => fetchUsers(userTotalPages, userSearch)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e8e8e5", background: "#fff", color: "#777", fontSize: 12, cursor: userPage >= userTotalPages ? "not-allowed" : "pointer", opacity: userPage >= userTotalPages ? 0.45 : 1 }}>末页</button>
+                </div>
+              )}
             </div>
           )}
 

@@ -22,13 +22,16 @@ model User {
   favorites      UserFavorite[]
   readingHistory ReadingHistory[]
   vocabulary     Vocabulary[]
+
+  @@index([createdAt])
+  @@index([status, lastLoginAt])
 }
 
 model Article {
   id               String    @id @default(cuid())
   title            String
   source           String
-  sourceUrl        String    @db.VarChar(512)
+  sourceUrl        String    @unique @db.VarChar(512)
   author           String?
   content          String    @db.Text
   summary          String?   @db.Text
@@ -47,6 +50,9 @@ model Article {
   translations    Translation[]
   favorites       UserFavorite[]
   readingHistory  ReadingHistory[]
+
+  @@index([isDeleted, crawledAt])
+  @@index([source, difficulty])
 }
 
 model UserFavorite {
@@ -120,6 +126,8 @@ model CrawlTask {
   startedAt      DateTime?
   finishedAt     DateTime?
   createdAt      DateTime  @default(now())
+
+  @@index([status, createdAt])
 }
 
 model Source {
@@ -133,4 +141,23 @@ model Source {
   description String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model RateLimitBucket {
+  key         String   @id @db.VarChar(191)
+  count       Int      @default(0)
+  windowStart DateTime
+  expiresAt   DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+model CaptchaChallenge {
+  id         String   @id @db.VarChar(64)
+  answerHash String   @db.VarChar(64)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([expiresAt])
 }

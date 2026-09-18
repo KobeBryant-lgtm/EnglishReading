@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { DIFFICULTY_LABELS, SOURCES } from "@/types";
-import { getCoverImageWithFallback, getCategoryGradient } from "@/lib/coverGenerator";
+import { generateCoverImageUrl } from "@/lib/coverGenerator";
 
 interface ArticleData {
   id: string;
@@ -20,7 +20,6 @@ interface ArticleData {
 export default function DailyRecommend() {
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     fetch("/api/daily")
@@ -52,32 +51,18 @@ export default function DailyRecommend() {
     color: "#6b7280",
   };
   const difficultyLabel = DIFFICULTY_LABELS[article.difficulty] || article.difficulty;
-  const coverImageUrl = getCoverImageWithFallback(article.title, article.source, article.imageUrl);
-  const hasImage = coverImageUrl && !imageError;
+  const artCoverUrl = generateCoverImageUrl(article.title, article.source, 1200, 520);
 
   return (
     <Link href={`/articles/${article.id}`} className="no-underline block">
       <div className="daily-recommend-card group cursor-pointer mb-8 sm:mb-10 overflow-hidden relative">
-        {hasImage ? (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-              style={{ backgroundImage: `url(${coverImageUrl})` }}
-            >
-              <img
-                src={coverImageUrl}
-                alt={article.title}
-                className="hidden"
-                onError={() => setImageError(true)}
-              />
-              <div className="absolute inset-0 daily-gradient-overlay"></div>
-            </div>
-          </>
-        ) : (
-          <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryGradient(article.source)}`}></div>
-        )}
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+          style={{ backgroundImage: `url("${artCoverUrl}")` }}
+        />
+        <div className="absolute inset-0 daily-gradient-overlay"></div>
 
-        <div className={`relative z-10 ${hasImage ? "text-white" : ""}`}>
+        <div className="relative z-10 text-white">
           <div className="flex items-center gap-3 mb-3 sm:mb-4">
             <span className="daily-badge">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -85,7 +70,7 @@ export default function DailyRecommend() {
               </svg>
               每日推荐
             </span>
-            <span className="source-tag" style={!hasImage ? {} : {
+            <span className="source-tag" style={{
               background: "rgba(255,255,255,0.2)",
               borderColor: "rgba(255,255,255,0.3)",
               color: "#fff"
@@ -102,7 +87,7 @@ export default function DailyRecommend() {
             style={{
               fontFamily: "var(--serif)",
               letterSpacing: "-0.02em",
-              textShadow: hasImage ? "0 2px 20px rgba(0,0,0,0.3)" : "none"
+              textShadow: "0 2px 20px rgba(0,0,0,0.3)"
             }}
           >
             {article.title}
@@ -112,8 +97,8 @@ export default function DailyRecommend() {
             <p
               className="text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-3 mb-4"
               style={{
-                opacity: hasImage ? 0.95 : undefined,
-                color: hasImage ? "#fff" : "var(--text-secondary)"
+                opacity: 0.95,
+                color: "#fff"
               }}
             >
               {article.summary}
@@ -122,7 +107,7 @@ export default function DailyRecommend() {
 
           <div
             className="flex items-center gap-4 text-xs"
-            style={{ color: hasImage ? "rgba(255,255,255,0.85)" : "var(--text-muted)" }}
+            style={{ color: "rgba(255,255,255,0.85)" }}
           >
             <span>{article.wordCount} 词</span>
             <span>·</span>

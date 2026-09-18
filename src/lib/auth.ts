@@ -1,14 +1,30 @@
 import bcrypt from "bcryptjs";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import jwt from "jsonwebtoken";
+import { prisma } from "@/lib/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "readeng-v2-secret-key-change-in-production";
 const ACCESS_TOKEN_EXPIRES = "24h";
 const REFRESH_TOKEN_EXPIRES = "7d";
+const MIN_SECRET_LENGTH = 24;
 
 export interface TokenPayload {
   userId: string;
   username: string;
   role: string;
+}
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < MIN_SECRET_LENGTH) {
+    throw new Error(`JWT_SECRET must be configured with at least ${MIN_SECRET_LENGTH} characters`);
+  }
+  return secret;
+}
+
+function hashCaptchaAnswer(captchaId: string, answer: number): string {
+  return createHmac("sha256", getJwtSecret())
+    .update(`${captchaId}:${answer}`)
+    .digest("hex");
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -20,16 +36,16 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function generateAccessToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: ACCESS_TOKEN_EXPIRES });
 }
 
 export function generateRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: REFRESH_TOKEN_EXPIRES });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    return jwt.verify(token, getJwtSecret()) as TokenPayload;
   } catch {
     return null;
   }
@@ -43,25 +59,44 @@ export function generateCaptcha() {
   return { captchaId, question: `${a} + ${b} = ?`, answer };
 }
 
-const captchaStore = new Map<string, { answer: number; expiresAt: number }>();
+export async function storeCaptcha(captchaId: string, answer: number) {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
 
-export function storeCaptcha(captchaId: string, answer: number) {
-  captchaStore.set(captchaId, {
-    answer,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
-  if (captchaStore.size > 1000) {
-    const now = Date.now();
-    for (const [key, value] of captchaStore) {
-      if (value.expiresAt < now) captchaStore.delete(key);
-    }
-  }
+  await Promise.all([
+    prisma.captchaChallenge.upsert({
+      where: { id: captchaId },
+      create: {
+        id: captchaId,
+        answerHash: hashCaptchaAnswer(captchaId, answer),
+        expiresAt,
+      },
+      update: {
+        answerHash: hashCaptchaAnswer(captchaId, answer),
+        expiresAt,
+      },
+    }),
+    prisma.captchaChallenge.deleteMany({
+      where: { expiresAt: { lt: now } },
+    }),
+  ]);
 }
 
-export function verifyCaptcha(captchaId: string, userAnswer: number): boolean {
-  const stored = captchaStore.get(captchaId);
-  if (!stored) return false;
-  captchaStore.delete(captchaId);
-  if (Date.now() > stored.expiresAt) return false;
-  return stored.answer === userAnswer;
+export async function verifyCaptcha(captchaId: string, userAnswer: number): Promise<boolean> {
+  if (!Number.isFinite(userAnswer)) return false;
+
+  try {
+    // Deleting first makes each challenge single-use even when the answer is
+    // wrong and prevents concurrent replay across serverless instances.
+    const challenge = await prisma.captchaChallenge.delete({
+      where: { id: captchaId },
+    });
+    if (challenge.expiresAt <= new Date()) return false;
+
+    const expected = Buffer.from(challenge.answerHash, "hex");
+    const received = Buffer.from(hashCaptchaAnswer(captchaId, userAnswer), "hex");
+    return expected.length === received.length && timingSafeEqual(expected, received);
+  } catch {
+    return false;
+  }
 }

@@ -7,14 +7,18 @@ export async function GET() {
       orderBy: { nameCn: "asc" },
     });
 
-    const sourcesWithCount = await Promise.all(
-      sources.map(async (s) => {
-        const articleCount = await prisma.article.count({
-          where: { source: s.name, isDeleted: false },
-        });
-        return { ...s, articleCount };
-      })
+    const articleCounts = await prisma.article.groupBy({
+      by: ["source"],
+      where: { isDeleted: false },
+      _count: { _all: true },
+    });
+    const countBySource = new Map(
+      articleCounts.map((item) => [item.source, item._count._all])
     );
+    const sourcesWithCount = sources.map((source) => ({
+      ...source,
+      articleCount: countBySource.get(source.name) || 0,
+    }));
 
     return NextResponse.json(sourcesWithCount);
   } catch {

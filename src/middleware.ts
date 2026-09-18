@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const JWT_SECRET = process.env.JWT_SECRET || "readeng-v2-secret-key-change-in-production";
-
 const PUBLIC_API_PATHS = [
   "/api/auth/register",
   "/api/auth/login",
@@ -13,11 +11,13 @@ const PUBLIC_API_PATHS = [
   "/api/translate",
   "/api/sources",
   "/api/vocabulary",
-  "/api/crawl",
   "/api/cron/crawl",
+  "/api/health",
 ];
 
 const ADMIN_API_PREFIX = "/api/admin";
+const ADMIN_API_PATHS = new Set(["/api/crawl"]);
+const MIN_SECRET_LENGTH = 24;
 
 function isPublicApiPath(pathname: string): boolean {
   return PUBLIC_API_PATHS.some(
@@ -27,13 +27,19 @@ function isPublicApiPath(pathname: string): boolean {
 
 async function verifyTokenEdge(token: string): Promise<{ userId: string; username: string; role: string } | null> {
   try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.length < MIN_SECRET_LENGTH) {
+      console.error(`JWT_SECRET is missing or shorter than ${MIN_SECRET_LENGTH} characters`);
+      return null;
+    }
+
     const parts = token.split(".");
     if (parts.length !== 3) return null;
 
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       "raw",
-      encoder.encode(JWT_SECRET),
+      encoder.encode(jwtSecret),
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["verify"]
@@ -85,7 +91,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "登录已过期，请重新登录" }, { status: 401 });
     }
 
-    if (pathname.startsWith(ADMIN_API_PREFIX) && payload.role !== "admin") {
+    if (
+      (pathname.startsWith(ADMIN_API_PREFIX) || ADMIN_API_PATHS.has(pathname)) &&
+      payload.role !== "admin"
+    ) {
       return NextResponse.json({ error: "无管理员权限" }, { status: 403 });
     }
 

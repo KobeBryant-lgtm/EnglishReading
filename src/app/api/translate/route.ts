@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
+import { consumeRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  const rateLimit = await consumeRateLimit(request, {
+    scope: "translate",
+    limit: 30,
+    windowMs: 60 * 1000,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   const { text, targetLang = "ZH" } = await request.json();
 
   if (!text || typeof text !== "string") {
     return NextResponse.json({ error: "请提供要翻译的文本" }, { status: 400 });
+  }
+
+  if (text.length > 5000) {
+    return NextResponse.json({ error: "单次翻译内容不能超过5000字符" }, { status: 413 });
   }
 
   const apiKey = process.env.DEEPL_API_KEY;
@@ -29,6 +41,7 @@ export async function POST(request: Request) {
         target_lang: targetLang,
         source_lang: "EN",
       }),
+      signal: AbortSignal.timeout(12000),
     });
 
     if (!response.ok) {

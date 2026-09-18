@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { hashPassword, verifyPassword, generateAccessToken, generateRefreshToken, verifyCaptcha } from "@/lib/auth";
+import { verifyPassword, generateAccessToken, generateRefreshToken } from "@/lib/auth";
+import { consumeRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  const rateLimit = await consumeRateLimit(request, {
+    scope: "login",
+    limit: 10,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
   try {
     const { username, password } = await request.json();
 
@@ -49,7 +57,8 @@ export async function POST(request: Request) {
         role: user.role,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("Login failed:", error);
     return NextResponse.json({ error: "登录失败" }, { status: 500 });
   }
 }
